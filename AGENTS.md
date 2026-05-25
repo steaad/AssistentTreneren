@@ -107,7 +107,7 @@ Do not generate code for legacy Android compatibility unless explicitly requeste
 
 # Project Structure
 
-AGENTS_STRUCTURE.md is the source of truth for physical project structure.
+STRUCTURE.md is the source of truth for physical project structure.
 Use feature-first organization where appropriate.
 
 ## Core Terms
