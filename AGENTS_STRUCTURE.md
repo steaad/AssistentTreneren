@@ -171,6 +171,9 @@ Ikke organiser etter:
 * utils
 * api
 
+Use utils only for truly generic pure helper functions.
+Avoid dumping unrelated logic into utils.
+
 Bruk:
 
 ```text
