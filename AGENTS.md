@@ -1,4 +1,4 @@
-# Football Analysis Tool - AI Agent Instructions general
+# Football Analysis Tool - General AI Agent Instructions
 
 ## Project Overview
 
