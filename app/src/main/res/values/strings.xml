@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">Assistent Treneren</string>
+    <string name="login_title">Logg inn</string>
+    <string name="login_subtitle">Fortsett til kamp- og treningsanalyse.</string>
+    <string name="login_email_label">E-post</string>
+    <string name="login_password_label">Passord</string>
+    <string name="login_button">Logg inn</string>
+    <string name="login_loading">Logger inn</string>
+    <string name="login_error_required">Feltet må fylles ut.</string>
+    <string name="login_error_invalid_email">Skriv inn en gyldig e-postadresse.</string>
+    <string name="login_error_password_too_short">Passordet må være minst 8 tegn.</string>
+    <string name="login_error_invalid_credentials">E-post eller passord er feil.</string>
+    <string name="login_error_network_unavailable">Ingen nettverkstilkobling. Prøv igjen når du er på nett.</string>
+    <string name="login_error_invalid_server_response">Innloggingen kunne ikke fullføres akkurat nå.</string>
+    <string name="login_error_server">Serverfeil (%1$d). Prøv igjen senere.</string>
+    <string name="login_error_unexpected">Noe gikk galt. Prøv igjen.</string>
 </resources>
