@@ -1,0 +1,44 @@
+package com.example.assistenttreneren.core.auth
+
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+@Singleton
+class SessionManager @Inject constructor(
+    private val tokenStorage: TokenStorage,
+    private val jwtDecoder: JwtDecoder,
+) {
+    private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
+    val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
+
+    suspend fun initializeSession() {
+        val accessToken = tokenStorage.getAccessToken()
+
+        _sessionState.value = when {
+            accessToken.isNullOrBlank() -> SessionState.Unauthenticated
+            jwtDecoder.isExpired(accessToken) -> {
+                tokenStorage.clearTokens()
+                SessionState.Unauthenticated
+            }
+
+            else -> SessionState.Authenticated
+        }
+    }
+
+    fun onLoginSucceeded() {
+        _sessionState.value = SessionState.Authenticated
+    }
+
+    suspend fun logout() {
+        tokenStorage.clearTokens()
+        _sessionState.value = SessionState.Unauthenticated
+    }
+
+    suspend fun onSessionExpired() {
+        tokenStorage.clearTokens()
+        _sessionState.value = SessionState.SessionExpired
+    }
+}

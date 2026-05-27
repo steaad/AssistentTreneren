@@ -14,4 +14,7 @@
     <string name="login_error_invalid_server_response">Innloggingen kunne ikke fullføres akkurat nå.</string>
     <string name="login_error_server">Serverfeil (%1$d). Prøv igjen senere.</string>
     <string name="login_error_unexpected">Noe gikk galt. Prøv igjen.</string>
+    <string name="session_expired_message">Økten er utløpt. Logg inn på nytt.</string>
+    <string name="home_title">Du er logget inn.</string>
+    <string name="logout_button">Logg ut</string>
 </resources>

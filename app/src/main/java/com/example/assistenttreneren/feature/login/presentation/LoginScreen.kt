@@ -42,6 +42,7 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     onLoginSuccess: () -> Unit,
     modifier: Modifier = Modifier,
+    sessionMessage: String? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -58,6 +59,7 @@ fun LoginScreen(
         onPasswordChanged = viewModel::onPasswordChanged,
         onLoginClicked = viewModel::login,
         modifier = modifier,
+        sessionMessage = sessionMessage,
     )
 }
 
@@ -68,6 +70,7 @@ fun LoginContent(
     onPasswordChanged: (String) -> Unit,
     onLoginClicked: () -> Unit,
     modifier: Modifier = Modifier,
+    sessionMessage: String? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -101,6 +104,16 @@ fun LoginContent(
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
+
+                sessionMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 OutlinedTextField(
                     value = uiState.email,
