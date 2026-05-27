@@ -5,6 +5,7 @@
     <string name="login_email_label">E-post</string>
     <string name="login_password_label">Passord</string>
     <string name="login_button">Logg inn</string>
+    <string name="login_continue_without_backend">Fortsett uten backend</string>
     <string name="login_loading">Logger inn</string>
     <string name="login_error_required">Feltet må fylles ut.</string>
     <string name="login_error_invalid_email">Skriv inn en gyldig e-postadresse.</string>

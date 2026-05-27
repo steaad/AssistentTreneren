@@ -2,6 +2,7 @@ package com.example.assistenttreneren.feature.login.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.assistenttreneren.BuildConfig
 import com.example.assistenttreneren.feature.login.domain.repository.AuthError
 import com.example.assistenttreneren.feature.login.domain.repository.AuthResult
 import com.example.assistenttreneren.feature.login.domain.usecase.LoginUseCase
@@ -103,6 +104,21 @@ class LoginViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun continueWithoutBackend() {
+        if (!BuildConfig.DEBUG || _uiState.value.isLoading) {
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                isLoginSuccessful = true,
+                loginError = null,
+                emailError = null,
+                passwordError = null,
+            )
         }
     }
 

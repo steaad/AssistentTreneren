@@ -20,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.assistenttreneren.BuildConfig
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
 
@@ -58,6 +60,8 @@ fun LoginScreen(
         onEmailChanged = viewModel::onEmailChanged,
         onPasswordChanged = viewModel::onPasswordChanged,
         onLoginClicked = viewModel::login,
+        onContinueWithoutBackendClicked = viewModel::continueWithoutBackend,
+        showBackendBypass = BuildConfig.DEBUG,
         modifier = modifier,
         sessionMessage = sessionMessage,
     )
@@ -69,6 +73,8 @@ fun LoginContent(
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onLoginClicked: () -> Unit,
+    onContinueWithoutBackendClicked: () -> Unit,
+    showBackendBypass: Boolean,
     modifier: Modifier = Modifier,
     sessionMessage: String? = null,
 ) {
@@ -203,6 +209,20 @@ fun LoginContent(
                         Text(text = stringResource(R.string.login_button))
                     }
                 }
+
+                if (showBackendBypass) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    TextButton(
+                        onClick = onContinueWithoutBackendClicked,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        enabled = !uiState.isLoading,
+                    ) {
+                        Text(text = stringResource(R.string.login_continue_without_backend))
+                    }
+                }
             }
         }
     }
@@ -238,6 +258,8 @@ private fun LoginContentPreview() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onLoginClicked = {},
+            onContinueWithoutBackendClicked = {},
+            showBackendBypass = true,
         )
     }
 }
@@ -255,6 +277,8 @@ private fun LoginContentLoadingPreview() {
             onEmailChanged = {},
             onPasswordChanged = {},
             onLoginClicked = {},
+            onContinueWithoutBackendClicked = {},
+            showBackendBypass = true,
         )
     }
 }
