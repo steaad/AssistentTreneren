@@ -6,7 +6,7 @@ sealed class Routes(
     data object Loading : Routes("loading")
     data object Login : Routes("login")
     data object Home : Routes("home")
-    data object TrainerActivity : Routes("trainer_activity")
+    data object CoachActivity : Routes("coach_activity")
     data object Analysis : Routes("analysis")
     data object History : Routes("history")
 }

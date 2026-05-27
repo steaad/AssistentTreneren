@@ -73,8 +73,8 @@ fun AppNavGraph(
 
         composable(Routes.Home.route) {
             HomeScreen(
-                onTrainerActivityClicked = {
-                    navController.navigate(Routes.TrainerActivity.route)
+                onCoachActivityClicked = {
+                    navController.navigate(Routes.CoachActivity.route)
                 },
                 onAnalysisClicked = {
                     navController.navigate(Routes.Analysis.route)
@@ -86,9 +86,9 @@ fun AppNavGraph(
             )
         }
 
-        composable(Routes.TrainerActivity.route) {
+        composable(Routes.CoachActivity.route) {
             SimpleDestinationScreen(
-                title = stringResource(R.string.trainer_activity_title),
+                title = stringResource(R.string.coach_activity_title),
                 onNavigateBack = navController::popBackStack,
             )
         }
@@ -149,7 +149,7 @@ private fun LoadingScreen(
 
 @Composable
 private fun HomeScreen(
-    onTrainerActivityClicked: () -> Unit,
+    onCoachActivityClicked: () -> Unit,
     onAnalysisClicked: () -> Unit,
     onHistoryClicked: () -> Unit,
     onLogoutClicked: () -> Unit,
@@ -166,8 +166,8 @@ private fun HomeScreen(
             Spacer(modifier = Modifier.height(88.dp))
 
             HomeNavigationTile(
-                title = stringResource(R.string.trainer_activity_title),
-                onClick = onTrainerActivityClicked,
+                title = stringResource(R.string.coach_activity_title),
+                onClick = onCoachActivityClicked,
             )
 
             HomeNavigationTile(
@@ -276,7 +276,7 @@ private fun LoadingScreenPreview() {
 private fun HomeScreenPreview() {
     AssistentTrenerenTheme {
         HomeScreen(
-            onTrainerActivityClicked = {},
+            onCoachActivityClicked = {},
             onAnalysisClicked = {},
             onHistoryClicked = {},
             onLogoutClicked = {},
@@ -289,7 +289,7 @@ private fun HomeScreenPreview() {
 private fun SimpleDestinationScreenPreview() {
     AssistentTrenerenTheme {
         SimpleDestinationScreen(
-            title = stringResource(R.string.trainer_activity_title),
+            title = stringResource(R.string.coach_activity_title),
             onNavigateBack = {},
         )
     }

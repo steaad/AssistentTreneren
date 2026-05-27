@@ -17,7 +17,7 @@
     <string name="login_error_unexpected">Noe gikk galt. Prøv igjen.</string>
     <string name="session_expired_message">Økten er utløpt. Logg inn på nytt.</string>
     <string name="home_title">Hjem</string>
-    <string name="trainer_activity_title">Trener aktivitet</string>
+    <string name="coach_activity_title">Trener aktivitet</string>
     <string name="analysis_title">Analyse</string>
     <string name="history_title">Historikk</string>
     <string name="navigate_back_button">Tilbake</string>
