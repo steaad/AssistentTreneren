@@ -16,6 +16,11 @@
     <string name="login_error_server">Serverfeil (%1$d). Prøv igjen senere.</string>
     <string name="login_error_unexpected">Noe gikk galt. Prøv igjen.</string>
     <string name="session_expired_message">Økten er utløpt. Logg inn på nytt.</string>
-    <string name="home_title">Du er logget inn.</string>
+    <string name="home_title">Hjem</string>
+    <string name="trainer_activity_title">Trener aktivitet</string>
+    <string name="analysis_title">Analyse</string>
+    <string name="history_title">Historikk</string>
+    <string name="navigate_back_button">Tilbake</string>
+    <string name="screen_under_development">Denne siden er under utvikling.</string>
     <string name="logout_button">Logg ut</string>
 </resources>
