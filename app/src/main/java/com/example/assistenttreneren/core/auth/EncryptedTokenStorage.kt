@@ -30,11 +30,11 @@ class EncryptedTokenStorage @Inject constructor(
 
     override suspend fun clearTokens() {
         withContext(Dispatchers.IO) {
-            sharedPreferences.edit()
-                .remove(KEY_ACCESS_TOKEN)
-                .remove(KEY_REFRESH_TOKEN)
-                .remove(KEY_EXPIRES_IN)
-                .apply()
+            val isCleared = sharedPreferences.edit()
+                .clear()
+                .commit()
+
+            check(isCleared) { "Failed to clear secure token storage." }
         }
     }
 
