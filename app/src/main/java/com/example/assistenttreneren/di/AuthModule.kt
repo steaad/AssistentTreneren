@@ -8,6 +8,8 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.example.assistenttreneren.core.auth.EncryptedTokenStorage
 import com.example.assistenttreneren.core.auth.TokenStorage
+import com.example.assistenttreneren.feature.login.data.repository.AuthRepositoryImpl
+import com.example.assistenttreneren.feature.login.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -24,6 +26,11 @@ abstract class AuthModule {
     abstract fun bindTokenStorage(
         encryptedTokenStorage: EncryptedTokenStorage,
     ): TokenStorage
+
+    @Binds
+    abstract fun bindAuthRepository(
+        authRepositoryImpl: AuthRepositoryImpl,
+    ): AuthRepository
 
     companion object {
         @Provides
