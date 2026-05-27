@@ -378,6 +378,12 @@ When generating code:
 * avoid placeholders unless requested
 * avoid mock implementations unless requested
 
+When creating files:
+
+* give a short explanation per file (1-2 lines)
+* explain non-obvious decisions
+* skip explaining trivial code
+
 Before:
 
 * introducing a new dependency
