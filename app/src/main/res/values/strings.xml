@@ -18,6 +18,17 @@
     <string name="session_expired_message">Økten er utløpt. Logg inn på nytt.</string>
     <string name="home_title">Hjem</string>
     <string name="coach_activity_title">Trener aktivitet</string>
+    <string name="wizard_step_counter">Steg %1$d av %2$d</string>
+    <string name="wizard_next_button">Neste</string>
+    <string name="wizard_finish_button">Fullfør</string>
+    <string name="wizard_activity_type_title">Aktivitets type</string>
+    <string name="wizard_activity_type_placeholder">Velg type aktivitet kommer her.</string>
+    <string name="wizard_audio_recording_title">Opptak av lyd</string>
+    <string name="wizard_audio_recording_placeholder">Opptaksfunksjonalitet kommer her.</string>
+    <string name="wizard_upload_title">Opplasting</string>
+    <string name="wizard_upload_placeholder">Opplasting av media kommer her.</string>
+    <string name="wizard_summary_title">Oppsummering</string>
+    <string name="wizard_summary_placeholder">Oppsummering av treneraktiviteten kommer her.</string>
     <string name="analysis_title">Analyse</string>
     <string name="history_title">Historikk</string>
     <string name="navigate_back_button">Tilbake</string>

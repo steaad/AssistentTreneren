@@ -18,6 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,9 +31,16 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.core.auth.SessionState
+import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardViewModel
+import com.example.assistenttreneren.feature.activitywizard.presentation.steps.ActivityTypeStepScreen
+import com.example.assistenttreneren.feature.activitywizard.presentation.steps.AudioRecordingStepScreen
+import com.example.assistenttreneren.feature.activitywizard.presentation.steps.SummaryStepScreen
+import com.example.assistenttreneren.feature.activitywizard.presentation.steps.UploadStepScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginViewModel
 import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
@@ -86,11 +95,82 @@ fun AppNavGraph(
             )
         }
 
-        composable(Routes.CoachActivity.route) {
-            SimpleDestinationScreen(
-                title = stringResource(R.string.coach_activity_title),
-                onNavigateBack = navController::popBackStack,
-            )
+        navigation(
+            route = Routes.CoachActivity.route,
+            startDestination = Routes.CoachActivityType.route,
+        ) {
+            composable(Routes.CoachActivityType.route) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.CoachActivity.route)
+                }
+                val viewModel: CoachActivityWizardViewModel = hiltViewModel(parentEntry)
+                val uiState by viewModel.uiState.collectAsState()
+
+                ActivityTypeStepScreen(
+                    uiState = uiState,
+                    onStepOpened = viewModel::onStepOpened,
+                    onNavigateBack = navController::popBackStack,
+                    onNavigateNext = {
+                        navController.navigate(Routes.CoachActivityAudioRecording.route)
+                    },
+                )
+            }
+
+            composable(Routes.CoachActivityAudioRecording.route) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.CoachActivity.route)
+                }
+                val viewModel: CoachActivityWizardViewModel = hiltViewModel(parentEntry)
+                val uiState by viewModel.uiState.collectAsState()
+
+                AudioRecordingStepScreen(
+                    uiState = uiState,
+                    onStepOpened = viewModel::onStepOpened,
+                    onNavigateBack = navController::popBackStack,
+                    onNavigateNext = {
+                        navController.navigate(Routes.CoachActivityUpload.route)
+                    },
+                )
+            }
+
+            composable(Routes.CoachActivityUpload.route) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.CoachActivity.route)
+                }
+                val viewModel: CoachActivityWizardViewModel = hiltViewModel(parentEntry)
+                val uiState by viewModel.uiState.collectAsState()
+
+                UploadStepScreen(
+                    uiState = uiState,
+                    onStepOpened = viewModel::onStepOpened,
+                    onNavigateBack = navController::popBackStack,
+                    onNavigateNext = {
+                        navController.navigate(Routes.CoachActivitySummary.route)
+                    },
+                )
+            }
+
+            composable(Routes.CoachActivitySummary.route) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.CoachActivity.route)
+                }
+                val viewModel: CoachActivityWizardViewModel = hiltViewModel(parentEntry)
+                val uiState by viewModel.uiState.collectAsState()
+
+                SummaryStepScreen(
+                    uiState = uiState,
+                    onStepOpened = viewModel::onStepOpened,
+                    onNavigateBack = navController::popBackStack,
+                    onFinish = {
+                        navController.navigate(Routes.Home.route) {
+                            popUpTo(Routes.CoachActivity.route) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
         }
 
         composable(Routes.Analysis.route) {
