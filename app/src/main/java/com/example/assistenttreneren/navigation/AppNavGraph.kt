@@ -33,7 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.core.auth.SessionState
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardViewModel
@@ -109,6 +109,8 @@ fun AppNavGraph(
                 ActivityTypeStepScreen(
                     uiState = uiState,
                     onStepOpened = viewModel::onStepOpened,
+                    onCreateNewActivityClicked = {},
+                    onSelectExistingActivityClicked = {},
                     onNavigateBack = navController::popBackStack,
                     onNavigateNext = {
                         navController.navigate(Routes.CoachActivityAudioRecording.route)

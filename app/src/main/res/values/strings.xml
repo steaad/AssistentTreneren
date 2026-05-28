@@ -22,6 +22,8 @@
     <string name="wizard_next_button">Neste</string>
     <string name="wizard_finish_button">Fullfør</string>
     <string name="wizard_activity_type_title">Aktivitets type</string>
+    <string name="wizard_create_new_activity_button">Opprett ny aktivitet</string>
+    <string name="wizard_select_existing_activity_button">Velg eksisterende aktivitet</string>
     <string name="wizard_activity_type_placeholder">Velg type aktivitet kommer her.</string>
     <string name="wizard_audio_recording_title">Opptak av lyd</string>
     <string name="wizard_audio_recording_placeholder">Opptaksfunksjonalitet kommer her.</string>
