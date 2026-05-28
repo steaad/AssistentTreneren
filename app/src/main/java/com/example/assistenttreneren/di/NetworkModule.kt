@@ -2,6 +2,7 @@ package com.example.assistenttreneren.di
 
 import com.example.assistenttreneren.BuildConfig
 import com.example.assistenttreneren.core.network.AuthInterceptor
+import com.example.assistenttreneren.feature.activitywizard.data.remote.CoachActivityApi
 import com.example.assistenttreneren.feature.login.data.remote.AuthApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -61,4 +62,10 @@ object NetworkModule {
     fun provideAuthApi(
         retrofit: Retrofit,
     ): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCoachActivityApi(
+        retrofit: Retrofit,
+    ): CoachActivityApi = retrofit.create(CoachActivityApi::class.java)
 }
