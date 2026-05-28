@@ -11,6 +11,8 @@ interface CoachActivityRepository {
         title: String?,
     ): CoachActivityResult<CoachActivity>
 
+    suspend fun getActivities(): CoachActivityResult<List<CoachActivity>>
+
     suspend fun getActivity(
         activityId: String,
     ): CoachActivityResult<CoachActivity>

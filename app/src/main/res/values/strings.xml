@@ -24,7 +24,15 @@
     <string name="wizard_activity_type_title">Aktivitets type</string>
     <string name="wizard_create_new_activity_button">Opprett ny aktivitet</string>
     <string name="wizard_select_existing_activity_button">Velg eksisterende aktivitet</string>
-    <string name="wizard_activity_type_placeholder">Velg type aktivitet kommer her.</string>
+    <string name="wizard_activity_title_label">Tittel</string>
+    <string name="wizard_existing_activity_dropdown_label">Velg aktivitet</string>
+    <string name="wizard_existing_activity_recordings_label">Opptak</string>
+    <string name="wizard_existing_activity_no_recordings">Ingen opptak å vise.</string>
+    <string name="wizard_existing_activity_recording_details">%1$s - %2$d sek</string>
+    <string name="activity_category_match">Kamp</string>
+    <string name="activity_category_training">Trening</string>
+    <string name="activity_category_meeting">Møte</string>
+    <string name="activity_category_scouting">Speiding</string>
     <string name="wizard_audio_recording_title">Opptak av lyd</string>
     <string name="wizard_audio_recording_placeholder">Opptaksfunksjonalitet kommer her.</string>
     <string name="wizard_upload_title">Opplasting</string>

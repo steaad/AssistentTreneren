@@ -45,6 +45,13 @@ class CoachActivityRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getActivities(): CoachActivityResult<List<CoachActivity>> =
+        withContext(Dispatchers.IO) {
+            runRequest {
+                coachActivityApi.getActivities().map { it.toCoachActivity() }
+            }
+        }
+
     override suspend fun getActivity(
         activityId: String,
     ): CoachActivityResult<CoachActivity> = withContext(Dispatchers.IO) {

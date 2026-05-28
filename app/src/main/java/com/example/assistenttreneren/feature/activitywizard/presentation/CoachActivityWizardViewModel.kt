@@ -18,4 +18,42 @@ class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
             currentState.copy(currentStep = step)
         }
     }
+
+    fun onCreateNewActivityClicked() {
+        _uiState.update { currentState ->
+            currentState.copy(activityInputMode = CoachActivityInputMode.CreateNew)
+        }
+    }
+
+    fun onSelectExistingActivityClicked() {
+        _uiState.update { currentState ->
+            currentState.copy(activityInputMode = CoachActivityInputMode.Existing)
+        }
+    }
+
+    fun onTitleChanged(title: String) {
+        _uiState.update { currentState ->
+            currentState.copy(title = title)
+        }
+    }
+
+    fun onActivityCategorySelected(activityCategory: String) {
+        _uiState.update { currentState ->
+            currentState.copy(activityCategory = activityCategory)
+        }
+    }
+
+    fun onExistingActivitySelected(activityId: String) {
+        _uiState.update { currentState ->
+            val selectedActivity = currentState.existingActivities.firstOrNull {
+                it.activityId == activityId
+            }
+
+            currentState.copy(
+                selectedExistingActivityId = selectedActivity?.activityId,
+                title = selectedActivity?.title.orEmpty(),
+                activityCategory = selectedActivity?.activityCategory,
+            )
+        }
+    }
 }

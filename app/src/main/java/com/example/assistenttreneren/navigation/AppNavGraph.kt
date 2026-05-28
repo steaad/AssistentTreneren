@@ -109,8 +109,11 @@ fun AppNavGraph(
                 ActivityTypeStepScreen(
                     uiState = uiState,
                     onStepOpened = viewModel::onStepOpened,
-                    onCreateNewActivityClicked = {},
-                    onSelectExistingActivityClicked = {},
+                    onCreateNewActivityClicked = viewModel::onCreateNewActivityClicked,
+                    onSelectExistingActivityClicked = viewModel::onSelectExistingActivityClicked,
+                    onTitleChanged = viewModel::onTitleChanged,
+                    onActivityCategorySelected = viewModel::onActivityCategorySelected,
+                    onExistingActivitySelected = viewModel::onExistingActivitySelected,
                     onNavigateBack = navController::popBackStack,
                     onNavigateNext = {
                         navController.navigate(Routes.CoachActivityAudioRecording.route)

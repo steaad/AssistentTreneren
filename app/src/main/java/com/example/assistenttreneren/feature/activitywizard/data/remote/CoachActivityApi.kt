@@ -15,6 +15,9 @@ interface CoachActivityApi {
         @Body request: CreateCoachActivityRequestDto = CreateCoachActivityRequestDto,
     ): CoachActivityDto
 
+    @GET("api/activities")
+    suspend fun getActivities(): List<CoachActivityDto>
+
     @PATCH("api/activities/{activityId}")
     suspend fun updateActivity(
         @Path("activityId") activityId: String,

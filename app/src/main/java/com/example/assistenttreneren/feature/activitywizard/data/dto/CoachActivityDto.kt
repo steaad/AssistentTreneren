@@ -7,4 +7,5 @@ data class CoachActivityDto(
     val activityId: String,
     val activityCategory: String? = null,
     val title: String? = null,
+    val recordings: List<RecordingDto> = emptyList(),
 )
