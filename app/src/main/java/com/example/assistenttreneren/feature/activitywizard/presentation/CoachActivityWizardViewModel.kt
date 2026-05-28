@@ -27,7 +27,12 @@ class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
 
     fun onSelectExistingActivityClicked() {
         _uiState.update { currentState ->
-            currentState.copy(activityInputMode = CoachActivityInputMode.Existing)
+            currentState.copy(
+                activityInputMode = CoachActivityInputMode.Existing,
+                existingActivities = currentState.existingActivities.ifEmpty {
+                    sampleExistingActivities
+                },
+            )
         }
     }
 
@@ -55,5 +60,47 @@ class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
                 activityCategory = selectedActivity?.activityCategory,
             )
         }
+    }
+
+    private companion object {
+        val sampleExistingActivities = listOf(
+            ExistingCoachActivityUiModel(
+                activityId = "activity-1",
+                activityCategory = "Kamp",
+                title = "G14 mot Nordstrand",
+                recordings = listOf(
+                    RecordingUiModel(
+                        id = "recording-1",
+                        recordingType = "Audio",
+                        filename = "g14-nordstrand-1.m4a",
+                        duration = 1840,
+                    ),
+                    RecordingUiModel(
+                        id = "recording-2",
+                        recordingType = "Audio",
+                        filename = "g14-nordstrand-2.m4a",
+                        duration = 920,
+                    ),
+                ),
+            ),
+            ExistingCoachActivityUiModel(
+                activityId = "activity-2",
+                activityCategory = "Trening",
+                title = "Pasningsokt senior",
+                recordings = listOf(
+                    RecordingUiModel(
+                        id = "recording-3",
+                        recordingType = "Audio",
+                        filename = "pasningsokt-senior.m4a",
+                        duration = 2700,
+                    ),
+                ),
+            ),
+            ExistingCoachActivityUiModel(
+                activityId = "activity-3",
+                activityCategory = "Speiding",
+                title = "Observasjon høyreback",
+            ),
+        )
     }
 }
