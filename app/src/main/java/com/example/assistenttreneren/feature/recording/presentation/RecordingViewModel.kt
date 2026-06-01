@@ -3,6 +3,7 @@ package com.example.assistenttreneren.feature.recording.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.assistenttreneren.feature.recording.domain.model.RecordingStatus
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingSubCategory
 import com.example.assistenttreneren.feature.recording.domain.usecase.GetRecordingStatusUseCase
 import com.example.assistenttreneren.feature.recording.domain.usecase.StartRecordingUseCase
 import com.example.assistenttreneren.feature.recording.domain.usecase.StopRecordingUseCase
@@ -31,17 +32,20 @@ class RecordingViewModel @Inject constructor(
                     when (status) {
                         RecordingStatus.Idle -> currentState.copy(
                             isRecording = false,
+                            recordingStartedAtMillis = null,
                             activeDisplayName = null,
                         )
 
                         is RecordingStatus.Recording -> currentState.copy(
                             isRecording = true,
+                            recordingStartedAtMillis = status.startedAtMillis,
                             activeDisplayName = status.displayName,
                             errorMessage = null,
                         )
 
                         is RecordingStatus.Completed -> currentState.copy(
                             isRecording = false,
+                            recordingStartedAtMillis = null,
                             activeDisplayName = null,
                             completedRecording = status.session,
                             errorMessage = null,
@@ -49,6 +53,7 @@ class RecordingViewModel @Inject constructor(
 
                         is RecordingStatus.Error -> currentState.copy(
                             isRecording = false,
+                            recordingStartedAtMillis = null,
                             activeDisplayName = null,
                             errorMessage = status.message,
                         )
@@ -58,9 +63,15 @@ class RecordingViewModel @Inject constructor(
         }
     }
 
-    fun onSubCategoryChanged(subCategory: String) {
+    fun onSubCategorySelected(subCategory: RecordingSubCategory) {
         _uiState.update { currentState ->
-            currentState.copy(subCategory = subCategory)
+            currentState.copy(subCategory = subCategory.displayName)
+        }
+    }
+
+    fun clearSubCategory() {
+        _uiState.update { currentState ->
+            currentState.copy(subCategory = "")
         }
     }
 

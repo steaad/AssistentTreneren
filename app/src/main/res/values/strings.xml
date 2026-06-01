@@ -35,7 +35,7 @@
     <string name="activity_category_scouting">Speiding</string>
     <string name="wizard_audio_recording_title">Opptak av lyd</string>
     <string name="wizard_audio_recording_placeholder">Opptaksfunksjonalitet kommer her.</string>
-    <string name="wizard_audio_recording_description">Start og stopp lydopptak for denne aktiviteten. Opptaket lagres som m4a i Music/AssistentTreneren.</string>
+    <string name="wizard_audio_recording_description">Start og stopp lydopptak for denne aktiviteten.</string>
     <string name="recording_sub_category_label">Underkategori</string>
     <string name="recording_start_button">Start opptak</string>
     <string name="recording_stop_button">Stopp opptak</string>

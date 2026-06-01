@@ -136,6 +136,7 @@ class MediaStoreAudioRecorder @Inject constructor(
         val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(context)
         } else {
+            // Required for API 26-30 because MediaRecorder(context) is only available from API 31.
             @Suppress("DEPRECATION")
             MediaRecorder()
         }

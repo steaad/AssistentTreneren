@@ -5,6 +5,7 @@ import com.example.assistenttreneren.feature.recording.domain.model.RecordingSes
 data class RecordingUiState(
     val subCategory: String = "",
     val isRecording: Boolean = false,
+    val recordingStartedAtMillis: Long? = null,
     val activeDisplayName: String? = null,
     val completedRecording: RecordingSession? = null,
     val errorMessage: String? = null,

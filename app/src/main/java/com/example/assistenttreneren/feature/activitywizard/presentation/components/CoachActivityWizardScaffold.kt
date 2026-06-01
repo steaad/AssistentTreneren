@@ -27,6 +27,7 @@ fun CoachActivityWizardScaffold(
     onNavigateBack: () -> Unit,
     onNavigateNext: () -> Unit,
     modifier: Modifier = Modifier,
+    isBackEnabled: Boolean = true,
     isNextEnabled: Boolean = true,
     nextButtonText: String = stringResource(R.string.wizard_next_button),
     content: @Composable () -> Unit,
@@ -74,6 +75,7 @@ fun CoachActivityWizardScaffold(
             ) {
                 OutlinedButton(
                     onClick = onNavigateBack,
+                    enabled = isBackEnabled,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(text = stringResource(R.string.navigate_back_button))
