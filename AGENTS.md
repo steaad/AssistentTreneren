@@ -94,6 +94,31 @@ The project should avoid:
 
 * Timber
 
+## Testing
+
+Use:
+
+* JUnit 4 for local JVM unit tests
+* Kotlin Coroutines Test for coroutine and StateFlow-based logic
+* AndroidX Test / AndroidX JUnit for instrumented Android tests
+* Compose UI Test for critical Compose UI flows
+* Espresso only when needed for Android integration testing
+
+Prefer local JVM unit tests for:
+
+* use cases
+* ViewModels
+* domain models
+* validation logic
+* state transitions
+* mappers
+* formatting logic
+* session/auth logic
+
+Use fakes instead of real network, storage, media, or Android framework components where practical.
+
+Do not introduce a new testing framework without confirmation.
+
 ---
 
 # Minimum Android Requirements
@@ -342,6 +367,51 @@ Avoid:
 * Unit test business logic
 * Keep ViewModels testable
 * UI tests only for critical flows
+
+## Selective TDD Guidance
+
+Use selective TDD for new business logic.
+
+When adding or changing business logic, prefer writing focused unit tests before or alongside the implementation. This applies especially to:
+
+* use cases
+* ViewModels
+* domain models
+* validation logic
+* state transitions
+* mappers between DTO/domain/UI models
+* category/subcategory rules
+* session/authentication logic
+* filename and metadata formatting
+* error handling
+* offline-first synchronization logic and queues
+
+Do not require TDD for every code change.
+
+TDD is not required for:
+
+* purely visual Compose layout changes
+* temporary placeholder screens
+* simple text/resource changes
+* Android framework integration details
+* permission launcher wiring
+* MediaRecorder implementation details
+* foreground service lifecycle details
+* navigation boilerplate
+
+For Android-framework-heavy behavior, prefer testing the surrounding business logic with fakes, and verify framework integration manually or with targeted integration tests only when the behavior is critical.
+
+When fixing a bug in business logic, add a regression test when practical.
+
+When adding tests, keep them:
+
+* focused
+* deterministic
+* independent of network access
+* independent of real Android framework components where possible
+* aligned with existing architecture
+
+Avoid broad, brittle UI tests unless the flow is business-critical.
 
 ## Avoid
 
