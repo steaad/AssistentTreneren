@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class SessionManager @Inject constructor(
     private val tokenStorage: TokenStorage,
     private val jwtDecoder: JwtDecoder,
+    private val tokenRefresher: AuthTokenRefresher,
 ) {
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
     val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
@@ -19,12 +20,24 @@ class SessionManager @Inject constructor(
 
         _sessionState.value = when {
             accessToken.isNullOrBlank() -> SessionState.Unauthenticated
-            jwtDecoder.isExpired(accessToken) -> {
-                tokenStorage.clearTokens()
-                SessionState.Unauthenticated
-            }
+            jwtDecoder.isExpired(accessToken) -> refreshExpiredSession()
 
             else -> SessionState.Authenticated
+        }
+    }
+
+    private suspend fun refreshExpiredSession(): SessionState {
+        val refreshToken = tokenStorage.getRefreshToken()
+        if (refreshToken.isNullOrBlank()) {
+            tokenStorage.clearTokens()
+            return SessionState.Unauthenticated
+        }
+
+        return if (tokenRefresher.refreshTokens() != null) {
+            SessionState.Authenticated
+        } else {
+            tokenStorage.clearTokens()
+            SessionState.SessionExpired
         }
     }
 

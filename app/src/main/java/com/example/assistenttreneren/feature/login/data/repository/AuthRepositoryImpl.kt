@@ -3,6 +3,7 @@ package com.example.assistenttreneren.feature.login.data.repository
 import com.example.assistenttreneren.core.auth.AuthTokens
 import com.example.assistenttreneren.core.auth.TokenStorage
 import com.example.assistenttreneren.feature.login.data.dto.LoginRequestDto
+import com.example.assistenttreneren.feature.login.data.dto.RefreshTokenRequestDto
 import com.example.assistenttreneren.feature.login.data.mapper.toAuthTokens
 import com.example.assistenttreneren.feature.login.data.remote.AuthApi
 import com.example.assistenttreneren.feature.login.domain.repository.AuthError
@@ -30,6 +31,38 @@ class AuthRepositoryImpl @Inject constructor(
                     email = email.trim(),
                     password = password,
                 ),
+            ).toAuthTokens()
+
+            if (!tokens.isValid()) {
+                return@withContext AuthResult.Failure(AuthError.InvalidServerResponse)
+            }
+
+            tokenStorage.saveTokens(tokens)
+            AuthResult.Success(tokens)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: HttpException) {
+            AuthResult.Failure(exception.toAuthError())
+        } catch (exception: IOException) {
+            AuthResult.Failure(AuthError.NetworkUnavailable)
+        } catch (exception: SerializationException) {
+            AuthResult.Failure(AuthError.InvalidServerResponse)
+        } catch (exception: IllegalArgumentException) {
+            AuthResult.Failure(AuthError.InvalidServerResponse)
+        } catch (exception: Exception) {
+            AuthResult.Failure(AuthError.Unexpected(exception.message))
+        }
+    }
+
+    override suspend fun refreshTokens(): AuthResult<AuthTokens> = withContext(Dispatchers.IO) {
+        val refreshToken = tokenStorage.getRefreshToken()?.trim()
+        if (refreshToken.isNullOrBlank()) {
+            return@withContext AuthResult.Failure(AuthError.InvalidCredentials)
+        }
+
+        try {
+            val tokens = authApi.refresh(
+                RefreshTokenRequestDto(refreshToken = refreshToken),
             ).toAuthTokens()
 
             if (!tokens.isValid()) {

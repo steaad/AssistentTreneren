@@ -2,14 +2,21 @@
 
 Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes som arbeidsliste under implementering og oppdateres fortløpende.
 
+## Før videre arbeid
+
+- Les `AGENTS.md` for prosjektregler, arkitekturkrav, teknologistack og AI-agent-instruksjoner.
+- Les `STRUCTURE.md` for gjeldende pakke- og filstruktur.
+- Bruk `Status`-seksjonen i dette dokumentet for å se hva som er implementert og hva som gjenstår.
+- Oppdater checkboxer i dette dokumentet når en fase eller deloppgave fullføres.
+
 ## Status
 
 - [x] Plan dokumentert
-- [ ] Login og token refresh planlagt
-- [ ] Auth refresh API-kontrakt definert
-- [ ] Automatic JWT refresh implementert
-- [ ] 401 retry/session-expired håndtering implementert
-- [ ] Auth refresh tester lagt til
+- [x] Login og token refresh planlagt
+- [x] Auth refresh API-kontrakt definert
+- [x] Automatic JWT refresh implementert
+- [x] 401 retry/session-expired håndtering implementert
+- [x] Auth refresh tester lagt til
 - [ ] Avhengigheter lagt til
 - [ ] Lokal lagring etablert
 - [ ] Wizard koblet til ekte state/backend

@@ -7,4 +7,6 @@ interface AuthRepository {
         email: String,
         password: String,
     ): AuthResult<AuthTokens>
+
+    suspend fun refreshTokens(): AuthResult<AuthTokens>
 }

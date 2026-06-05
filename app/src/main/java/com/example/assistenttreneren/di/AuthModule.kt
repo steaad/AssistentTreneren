@@ -7,7 +7,9 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.example.assistenttreneren.core.auth.EncryptedTokenStorage
+import com.example.assistenttreneren.core.auth.AuthTokenRefresher
 import com.example.assistenttreneren.core.auth.TokenStorage
+import com.example.assistenttreneren.feature.login.data.repository.AuthTokenRefresherImpl
 import com.example.assistenttreneren.feature.login.data.repository.AuthRepositoryImpl
 import com.example.assistenttreneren.feature.login.domain.repository.AuthRepository
 import dagger.Binds
@@ -31,6 +33,12 @@ abstract class AuthModule {
     abstract fun bindAuthRepository(
         authRepositoryImpl: AuthRepositoryImpl,
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthTokenRefresher(
+        authTokenRefresherImpl: AuthTokenRefresherImpl,
+    ): AuthTokenRefresher
 
     companion object {
         @Provides
