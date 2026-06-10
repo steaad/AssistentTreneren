@@ -17,8 +17,8 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Automatic JWT refresh implementert
 - [x] 401 retry/session-expired håndtering implementert
 - [x] Auth refresh tester lagt til
-- [ ] Avhengigheter lagt til
-- [ ] Lokal lagring etablert
+- [x] Avhengigheter lagt til
+- [x] Lokal lagring etablert
 - [ ] Wizard koblet til ekte state/backend
 - [ ] Opptak metadata lagres lokalt
 - [ ] Opplasting og statuspolling implementert
@@ -29,42 +29,42 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 
 ## 1. Login og token refresh
 
-- [ ] Bekreft minimum backend-kontrakt for auth:
-  - [ ] `POST /api/auth/login`
-  - [ ] `POST /api/auth/refresh`
-  - [ ] valgfri `POST /api/auth/logout`
-- [ ] Utvid `AuthApi` med refresh-endepunkt.
-- [ ] Opprett DTO-er for refresh request og refresh response.
-- [ ] Utvid `AuthRepository` med `refreshTokens()`.
-- [ ] Implementer refresh i `AuthRepositoryImpl`.
-- [ ] Lagre nye access/refresh tokens atomisk i `TokenStorage`.
-- [ ] Endre session initialization:
-  - [ ] gyldig access token gir authenticated session
-  - [ ] utløpt access token forsøker refresh når refresh token finnes
-  - [ ] refresh-feil rydder tokens og sender bruker til login
-- [ ] Legg til OkHttp `Authenticator` eller tilsvarende refresh-komponent.
-- [ ] Retry original request én gang etter vellykket refresh.
-- [ ] Unngå refresh-loop ved gjentatt 401.
-- [ ] Synkroniser parallelle 401-kall slik at bare ett refresh-kall kjøres om gangen.
-- [ ] Behold debug-bypass `Fortsett uten backend`.
-- [ ] Sørg for at debug-bypass ikke lagrer falske tokens.
-- [ ] Sørg for at debug-bypass ikke trigger refresh-flow.
-- [ ] Ikke logg tokens eller sensitive auth-data.
+- [x] Bekreft minimum backend-kontrakt for auth:
+  - [x] `POST /api/auth/login`
+  - [x] `POST /api/auth/refresh`
+  - [x] valgfri `POST /api/auth/logout`
+- [x] Utvid `AuthApi` med refresh-endepunkt.
+- [x] Opprett DTO-er for refresh request og refresh response.
+- [x] Utvid `AuthRepository` med `refreshTokens()`.
+- [x] Implementer refresh i `AuthRepositoryImpl`.
+- [x] Lagre nye access/refresh tokens atomisk i `TokenStorage`.
+- [x] Endre session initialization:
+  - [x] gyldig access token gir authenticated session
+  - [x] utløpt access token forsøker refresh når refresh token finnes
+  - [x] refresh-feil rydder tokens og sender bruker til login
+- [x] Legg til OkHttp `Authenticator` eller tilsvarende refresh-komponent.
+- [x] Retry original request én gang etter vellykket refresh.
+- [x] Unngå refresh-loop ved gjentatt 401.
+- [x] Synkroniser parallelle 401-kall slik at bare ett refresh-kall kjøres om gangen.
+- [x] Behold debug-bypass `Fortsett uten backend`.
+- [x] Sørg for at debug-bypass ikke lagrer falske tokens.
+- [x] Sørg for at debug-bypass ikke trigger refresh-flow.
+- [x] Ikke logg tokens eller sensitive auth-data.
 
 ## 2. Grunnmur
 
-- [ ] Legg til Room som lokal databaseavhengighet.
-- [ ] Legg til WorkManager for robust bakgrunnsopplasting.
-- [ ] Legg til nødvendig Hilt-integrasjon for Room og WorkManager.
-- [ ] Opprett databaseklasse.
-- [ ] Opprett entities for aktiviteter.
-- [ ] Opprett entities for lokale opptak.
-- [ ] Opprett entities for upload-jobber og upload-status.
-- [ ] Opprett entities for analyse-metadata.
-- [ ] Opprett DAO-er for aktivitet, opptak, upload og analyse.
-- [ ] Opprett repository-abstraksjoner over lokal lagring.
-- [ ] Definer domain-modeller for upload-status.
-- [ ] Definer mapper mellom DTO, Room entity og domain model.
+- [x] Legg til Room som lokal databaseavhengighet.
+- [x] Legg til WorkManager for robust bakgrunnsopplasting.
+- [x] Legg til nødvendig Hilt-integrasjon for Room og WorkManager.
+- [x] Opprett databaseklasse.
+- [x] Opprett entities for aktiviteter.
+- [x] Opprett entities for lokale opptak.
+- [x] Opprett entities for upload-jobber og upload-status.
+- [x] Opprett entities for analyse-metadata.
+- [x] Opprett DAO-er for aktivitet, opptak, upload og analyse.
+- [x] Opprett repository-abstraksjoner over lokal lagring.
+- [x] Definer domain-modeller for upload-status.
+- [x] Definer mapper mellom DTO, Room entity og domain model.
 
 ## 3. Backend-kontrakt
 
