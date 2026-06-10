@@ -68,23 +68,23 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 
 ## 3. Backend-kontrakt
 
-- [ ] Dokumenter minimumsendepunkter for aktiviteter:
-  - [ ] `GET /api/activities`
-  - [ ] `POST /api/activities`
-  - [ ] `PATCH /api/activities/{activityId}`
-- [ ] Dokumenter minimumsendepunkt for opplasting:
-  - [ ] `POST /api/activities/{activityId}/recordings`
-- [ ] Dokumenter minimumsendepunkt for upload-status:
-  - [ ] `GET /api/uploads/{uploadId}/status`
-- [ ] Dokumenter minimumsendepunkter for analyse:
-  - [ ] `GET /api/analyses`
-  - [ ] `GET /api/analyses/{analysisId}`
-- [ ] Opprett DTO-er for upload request/response.
-- [ ] Opprett DTO-er for upload-status.
-- [ ] Opprett DTO-er for analyse-liste og analyse-detalj.
-- [ ] Opprett Retrofit API-interface for upload.
-- [ ] Opprett Retrofit API-interface for analyse.
-- [ ] Hold DTO-er separert fra domain models.
+- [x] Dokumenter minimumsendepunkter for aktiviteter:
+  - [x] `GET /api/activities`
+  - [x] `POST /api/activities`
+  - [x] `PATCH /api/activities/{activityId}`
+- [x] Dokumenter minimumsendepunkt for opplasting:
+  - [x] `POST /api/activities/{activityId}/recordings`
+- [x] Dokumenter minimumsendepunkt for upload-status:
+  - [x] `GET /api/uploads/{uploadId}/status`
+- [x] Dokumenter minimumsendepunkter for analyse:
+  - [x] `GET /api/analyses`
+  - [x] `GET /api/analyses/{analysisId}`
+- [x] Opprett DTO-er for upload request/response.
+- [x] Opprett DTO-er for upload-status.
+- [x] Opprett DTO-er for analyse-liste og analyse-detalj.
+- [x] Opprett Retrofit API-interface for upload.
+- [x] Opprett Retrofit API-interface for analyse.
+- [x] Hold DTO-er separert fra domain models.
 
 ## 4. Trener aktivitet-wizard
 
