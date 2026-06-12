@@ -30,6 +30,7 @@ fun CoachActivityWizardScaffold(
     isBackEnabled: Boolean = true,
     isNextEnabled: Boolean = true,
     nextButtonText: String = stringResource(R.string.wizard_next_button),
+    contentFillsAvailableSpace: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
@@ -61,13 +62,21 @@ fun CoachActivityWizardScaffold(
             )
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = if (contentFillsAvailableSpace) {
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                } else {
+                    Modifier.fillMaxWidth()
+                },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content()
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            if (!contentFillsAvailableSpace) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

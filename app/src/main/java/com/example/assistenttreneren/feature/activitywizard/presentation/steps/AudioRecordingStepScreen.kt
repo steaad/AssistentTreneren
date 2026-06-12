@@ -8,7 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -141,9 +142,14 @@ fun AudioRecordingStepScreen(
         onNavigateNext = onNavigateNext,
         isBackEnabled = !recordingUiState.isRecording,
         isNextEnabled = !recordingUiState.isRecording,
+        contentFillsAvailableSpace = recordingUiState.selectedMediaType == RecordingMediaType.Video,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = if (recordingUiState.selectedMediaType == RecordingMediaType.Video) {
+                Modifier.fillMaxSize()
+            } else {
+                Modifier.fillMaxWidth()
+            },
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             RecordingMediaTypeSegmentedButtons(
@@ -190,6 +196,7 @@ fun AudioRecordingStepScreen(
                     recordingUiState = recordingUiState,
                     permissionMessageVisible = permissionMessageVisible,
                     canStartRecording = category != null,
+                    modifier = Modifier.weight(1f),
                     onBindPreview = { previewView ->
                         recordingViewModel.bindVideoPreview(
                             context = context,
@@ -278,7 +285,7 @@ private fun VideoRecordingPanel(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -292,7 +299,7 @@ private fun VideoRecordingPanel(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 9f),
+                    .weight(1f),
             )
 
             Row(
@@ -310,6 +317,7 @@ private fun VideoRecordingPanel(
                 OutlinedButton(
                     onClick = onStopRecording,
                     enabled = recordingUiState.canStopRecording,
+                    colors = activeStopButtonColors(),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(text = stringResource(R.string.recording_stop_button))
@@ -319,6 +327,7 @@ private fun VideoRecordingPanel(
             RecordingStatusText(
                 recordingUiState = recordingUiState,
                 permissionMessageVisible = permissionMessageVisible,
+                modifier = Modifier.padding(top = 6.dp),
             )
         }
     }
@@ -369,6 +378,7 @@ private fun RecordingControlPanel(
                 OutlinedButton(
                     onClick = onStopRecording,
                     enabled = recordingUiState.canStopRecording,
+                    colors = activeStopButtonColors(),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(text = stringResource(R.string.recording_stop_button))
@@ -437,9 +447,19 @@ private fun SegmentedButtonText(
 }
 
 @Composable
+private fun activeStopButtonColors() =
+    ButtonDefaults.outlinedButtonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
+        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+    )
+
+@Composable
 private fun RecordingStatusText(
     recordingUiState: com.example.assistenttreneren.feature.recording.presentation.RecordingUiState,
     permissionMessageVisible: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val text = when {
         permissionMessageVisible -> stringResource(R.string.recording_permission_required)
@@ -457,6 +477,7 @@ private fun RecordingStatusText(
 
     Text(
         text = text,
+        modifier = modifier,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

@@ -48,12 +48,13 @@ class CameraXVideoRecorder @Inject constructor(
         val capture = VideoCapture.withOutput(recorder)
 
         cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(
+        val camera = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             CameraSelector.DEFAULT_BACK_CAMERA,
             preview,
             capture,
         )
+        camera.cameraControl.setLinearZoom(FIXED_LINEAR_ZOOM)
         videoCapture = capture
     }
 
@@ -173,6 +174,7 @@ class CameraXVideoRecorder @Inject constructor(
     )
 
     private companion object {
+        const val FIXED_LINEAR_ZOOM = 0.6f
         const val VIDEO_EXTENSION = "mp4"
         const val VIDEO_MIME_TYPE = "video/mp4"
     }
