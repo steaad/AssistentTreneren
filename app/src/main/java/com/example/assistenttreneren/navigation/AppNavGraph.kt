@@ -114,9 +114,12 @@ fun AppNavGraph(
                     onTitleChanged = viewModel::onTitleChanged,
                     onActivityCategorySelected = viewModel::onActivityCategorySelected,
                     onExistingActivitySelected = viewModel::onExistingActivitySelected,
+                    onRetryLoadExistingActivitiesClicked = viewModel::onRetryLoadExistingActivitiesClicked,
                     onNavigateBack = navController::popBackStack,
                     onNavigateNext = {
-                        navController.navigate(Routes.CoachActivityAudioRecording.route)
+                        viewModel.onContinueFromActivityType {
+                            navController.navigate(Routes.CoachActivityAudioRecording.route)
+                        }
                     },
                 )
             }

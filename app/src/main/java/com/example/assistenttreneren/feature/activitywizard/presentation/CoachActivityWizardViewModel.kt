@@ -1,15 +1,33 @@
 package com.example.assistenttreneren.feature.activitywizard.presentation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.assistenttreneren.BuildConfig
+import com.example.assistenttreneren.feature.activitywizard.domain.model.CoachActivity
+import com.example.assistenttreneren.feature.activitywizard.domain.model.Recording
+import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityError
+import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityResult
+import com.example.assistenttreneren.feature.activitywizard.domain.repository.LocalCoachActivityRepository
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.CreateCoachActivityUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetCoachActivitiesUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateCoachActivityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 @HiltViewModel
-class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
+class CoachActivityWizardViewModel @Inject constructor(
+    private val getCoachActivitiesUseCase: GetCoachActivitiesUseCase,
+    private val createCoachActivityUseCase: CreateCoachActivityUseCase,
+    private val updateCoachActivityUseCase: UpdateCoachActivityUseCase,
+    private val localCoachActivityRepository: LocalCoachActivityRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(CoachActivityWizardUiState())
     val uiState: StateFlow<CoachActivityWizardUiState> = _uiState.asStateFlow()
 
@@ -21,7 +39,12 @@ class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
 
     fun onCreateNewActivityClicked() {
         _uiState.update { currentState ->
-            currentState.copy(activityInputMode = CoachActivityInputMode.CreateNew)
+            currentState.copy(
+                activityInputMode = CoachActivityInputMode.CreateNew,
+                selectedExistingActivityId = null,
+                selectedActivityId = null,
+                activityErrorMessage = null,
+            )
         }
     }
 
@@ -29,22 +52,28 @@ class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
         _uiState.update { currentState ->
             currentState.copy(
                 activityInputMode = CoachActivityInputMode.Existing,
-                existingActivities = currentState.existingActivities.ifEmpty {
-                    sampleExistingActivities
-                },
+                selectedActivityId = currentState.selectedExistingActivityId,
+                activityErrorMessage = null,
             )
         }
+        loadExistingActivities()
     }
 
     fun onTitleChanged(title: String) {
         _uiState.update { currentState ->
-            currentState.copy(title = title)
+            currentState.copy(
+                title = title,
+                activityErrorMessage = null,
+            )
         }
     }
 
     fun onActivityCategorySelected(activityCategory: String) {
         _uiState.update { currentState ->
-            currentState.copy(activityCategory = activityCategory)
+            currentState.copy(
+                activityCategory = activityCategory,
+                activityErrorMessage = null,
+            )
         }
     }
 
@@ -56,51 +85,208 @@ class CoachActivityWizardViewModel @Inject constructor() : ViewModel() {
 
             currentState.copy(
                 selectedExistingActivityId = selectedActivity?.activityId,
+                selectedActivityId = selectedActivity?.activityId,
                 title = selectedActivity?.title.orEmpty(),
                 activityCategory = selectedActivity?.activityCategory,
+                activityErrorMessage = null,
             )
         }
     }
 
-    private companion object {
-        val sampleExistingActivities = listOf(
-            ExistingCoachActivityUiModel(
-                activityId = "activity-1",
-                activityCategory = "Kamp",
-                title = "G14 mot Nordstrand",
-                recordings = listOf(
-                    RecordingUiModel(
-                        id = "recording-1",
-                        recordingType = "Audio",
-                        filename = "g14-nordstrand-1.m4a",
-                        duration = 1840,
-                    ),
-                    RecordingUiModel(
-                        id = "recording-2",
-                        recordingType = "Audio",
-                        filename = "g14-nordstrand-2.m4a",
-                        duration = 920,
-                    ),
-                ),
-            ),
-            ExistingCoachActivityUiModel(
-                activityId = "activity-2",
-                activityCategory = "Trening",
-                title = "Pasningsokt senior",
-                recordings = listOf(
-                    RecordingUiModel(
-                        id = "recording-3",
-                        recordingType = "Audio",
-                        filename = "pasningsokt-senior.m4a",
-                        duration = 2700,
-                    ),
-                ),
-            ),
-            ExistingCoachActivityUiModel(
-                activityId = "activity-3",
-                activityCategory = "Speiding",
-                title = "Observasjon høyreback",
-            ),
-        )
+    fun onRetryLoadExistingActivitiesClicked() {
+        loadExistingActivities()
     }
+
+    fun onContinueFromActivityType(
+        onNavigateNext: () -> Unit,
+    ) {
+        val currentState = uiState.value
+        when (currentState.activityInputMode) {
+            CoachActivityInputMode.CreateNew -> createActivityAndNavigate(onNavigateNext)
+            CoachActivityInputMode.Existing -> {
+                if (currentState.selectedActivityId != null) {
+                    onNavigateNext()
+                }
+            }
+
+            null -> Unit
+        }
+    }
+
+    private fun loadExistingActivities() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoadingActivities = true,
+                    activityErrorMessage = null,
+                )
+            }
+
+            val cachedActivities = localCoachActivityRepository.observeActivities()
+                .first()
+                .map { it.toExistingCoachActivityUiModel() }
+
+            if (cachedActivities.isNotEmpty()) {
+                _uiState.update {
+                    it.copy(existingActivities = cachedActivities)
+                }
+            }
+
+            when (val result = getCoachActivitiesUseCase()) {
+                is CoachActivityResult.Success -> {
+                    localCoachActivityRepository.saveActivities(result.data)
+                    _uiState.update {
+                        it.copy(
+                            existingActivities = result.data.map { activity ->
+                                activity.toExistingCoachActivityUiModel()
+                            },
+                            isLoadingActivities = false,
+                            activityErrorMessage = null,
+                        )
+                    }
+                }
+
+                is CoachActivityResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoadingActivities = false,
+                            activityErrorMessage = if (cachedActivities.isEmpty()) {
+                                result.error.toUserMessage()
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun createActivityAndNavigate(
+        onNavigateNext: () -> Unit,
+    ) {
+        val currentState = uiState.value
+        val title = currentState.title.trim()
+        val activityCategory = currentState.activityCategory
+
+        if (title.isBlank() || activityCategory == null || currentState.isCreatingActivity) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isCreatingActivity = true,
+                    activityErrorMessage = null,
+                )
+            }
+
+            if (BuildConfig.DEBUG) {
+                createDebugActivityAndNavigate(
+                    title = title,
+                    activityCategory = activityCategory,
+                    onNavigateNext = onNavigateNext,
+                )
+                return@launch
+            }
+
+            val createdActivity = when (val createResult = createCoachActivityUseCase()) {
+                is CoachActivityResult.Success -> createResult.data
+                is CoachActivityResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isCreatingActivity = false,
+                            activityErrorMessage = createResult.error.toUserMessage(),
+                        )
+                    }
+                    return@launch
+                }
+            }
+
+            when (
+                val updateResult = updateCoachActivityUseCase(
+                    activityId = createdActivity.activityId,
+                    activityCategory = activityCategory,
+                    title = title,
+                )
+            ) {
+                is CoachActivityResult.Success -> {
+                    localCoachActivityRepository.saveActivity(updateResult.data)
+                    _uiState.update {
+                        it.copy(
+                            selectedActivityId = updateResult.data.activityId,
+                            selectedExistingActivityId = null,
+                            title = updateResult.data.title.orEmpty(),
+                            activityCategory = updateResult.data.activityCategory,
+                            isCreatingActivity = false,
+                            activityErrorMessage = null,
+                        )
+                    }
+                    onNavigateNext()
+                }
+
+                is CoachActivityResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isCreatingActivity = false,
+                            activityErrorMessage = updateResult.error.toUserMessage(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun createDebugActivityAndNavigate(
+        title: String,
+        activityCategory: String,
+        onNavigateNext: () -> Unit,
+    ) {
+        val activity = CoachActivity(
+            activityId = "debug-local-${UUID.randomUUID()}",
+            activityCategory = activityCategory,
+            title = title,
+            recordings = emptyList(),
+        )
+
+        localCoachActivityRepository.saveActivity(activity)
+        _uiState.update {
+            it.copy(
+                selectedActivityId = activity.activityId,
+                selectedExistingActivityId = null,
+                title = activity.title.orEmpty(),
+                activityCategory = activity.activityCategory,
+                isCreatingActivity = false,
+                activityErrorMessage = null,
+            )
+        }
+        onNavigateNext()
+    }
+
+    private fun CoachActivity.toExistingCoachActivityUiModel(): ExistingCoachActivityUiModel =
+        ExistingCoachActivityUiModel(
+            activityId = activityId,
+            activityCategory = activityCategory.orEmpty(),
+            title = title.orEmpty(),
+            recordings = recordings.map { it.toRecordingUiModel() },
+        )
+
+    private fun Recording.toRecordingUiModel(): RecordingUiModel =
+        RecordingUiModel(
+            id = id,
+            recordingType = recordingType,
+            filename = filename,
+            duration = duration,
+        )
+
+    private fun CoachActivityError.toUserMessage(): String =
+        when (this) {
+            CoachActivityError.InvalidInput -> "Aktiviteten mangler påkrevd informasjon."
+            CoachActivityError.InvalidServerResponse -> "Serveren returnerte ugyldige aktivitetsdata."
+            CoachActivityError.NetworkUnavailable -> "Ingen nettverkstilkobling. Prøv igjen senere."
+            CoachActivityError.NotFound -> "Aktiviteten finnes ikke lenger."
+            CoachActivityError.Unauthorized -> "Du må logge inn på nytt."
+            is CoachActivityError.ServerError -> "Serverfeil ($code). Prøv igjen senere."
+            is CoachActivityError.Unexpected -> "Noe gikk galt. Prøv igjen."
+        }
 }

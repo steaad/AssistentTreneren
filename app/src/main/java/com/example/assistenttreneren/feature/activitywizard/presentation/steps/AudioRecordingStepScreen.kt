@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,12 +38,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardStep
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardUiState
 import com.example.assistenttreneren.feature.activitywizard.presentation.components.CoachActivityWizardScaffold
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingMediaType
 import com.example.assistenttreneren.feature.recording.domain.model.RecordingSubCategory
 import com.example.assistenttreneren.feature.recording.presentation.RecordingUiState
 import com.example.assistenttreneren.feature.recording.presentation.RecordingViewModel
@@ -62,10 +67,11 @@ fun AudioRecordingStepScreen(
 
     val recordingUiState by recordingViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val category = uiState.activityCategory
         ?: uiState.selectedExistingActivity?.activityCategory
     val subCategories = RecordingSubCategory.forActivityCategory(category)
-    val activityId = uiState.selectedExistingActivityId
+    val activityId = uiState.selectedActivityId
     var permissionMessageVisible by remember { mutableStateOf(false) }
     var shouldStartAfterPermissionGrant by remember { mutableStateOf(false) }
     var elapsedRecordingMillis by remember { mutableStateOf(0L) }
@@ -97,7 +103,9 @@ fun AudioRecordingStepScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
-        val hasRequiredPermissions = requiredRecordingPermissions().all { permission ->
+        val hasRequiredPermissions = requiredRecordingPermissions(
+            recordingUiState.selectedMediaType,
+        ).all { permission ->
             grants[permission] == true || ContextCompat.checkSelfPermission(
                 context,
                 permission,
@@ -106,10 +114,20 @@ fun AudioRecordingStepScreen(
 
         permissionMessageVisible = !hasRequiredPermissions
         if (hasRequiredPermissions && shouldStartAfterPermissionGrant && category != null) {
-            recordingViewModel.startRecording(
-                category = category,
-                activityId = activityId,
-            )
+            when (recordingUiState.selectedMediaType) {
+                RecordingMediaType.Audio -> recordingViewModel.startAudioRecording(
+                    category = category,
+                    activityId = activityId,
+                )
+
+                RecordingMediaType.Video -> recordingViewModel.startVideoRecording(
+                    context = context,
+                    category = category,
+                    activityId = activityId,
+                )
+
+                null -> Unit
+            }
         }
         shouldStartAfterPermissionGrant = false
     }
@@ -132,6 +150,12 @@ fun AudioRecordingStepScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            RecordingMediaTypeTiles(
+                selectedMediaType = recordingUiState.selectedMediaType,
+                enabled = !recordingUiState.isRecording,
+                onMediaTypeSelected = recordingViewModel::onMediaTypeSelected,
+            )
+
             SubCategoryTiles(
                 subCategories = subCategories,
                 selectedSubCategory = recordingUiState.subCategory,
@@ -139,28 +163,214 @@ fun AudioRecordingStepScreen(
                 onSubCategorySelected = recordingViewModel::onSubCategorySelected,
             )
 
-            RecordingControlPanel(
-                recordingUiState = recordingUiState,
-                permissionMessageVisible = permissionMessageVisible,
-                elapsedRecordingMillis = elapsedRecordingMillis,
-                canStartRecording = category != null,
-                onStartRecording = startRecording@{
-                    if (category == null) {
-                        permissionMessageVisible = true
-                        return@startRecording
-                    }
+            when (recordingUiState.selectedMediaType) {
+                RecordingMediaType.Audio -> RecordingControlPanel(
+                    recordingUiState = recordingUiState,
+                    permissionMessageVisible = permissionMessageVisible,
+                    elapsedRecordingMillis = elapsedRecordingMillis,
+                    canStartRecording = category != null,
+                    onStartRecording = startRecording@{
+                        if (category == null) {
+                            permissionMessageVisible = true
+                            return@startRecording
+                        }
 
-                    if (hasRecordingPermissions(context)) {
-                        recordingViewModel.startRecording(
-                            category = category,
-                            activityId = activityId,
+                        if (hasRecordingPermissions(context, RecordingMediaType.Audio)) {
+                            recordingViewModel.startAudioRecording(
+                                category = category,
+                                activityId = activityId,
+                            )
+                        } else {
+                            shouldStartAfterPermissionGrant = true
+                            permissionLauncher.launch(
+                                requiredRecordingPermissions(RecordingMediaType.Audio),
+                            )
+                        }
+                    },
+                    onStopRecording = recordingViewModel::stopRecording,
+                )
+
+                RecordingMediaType.Video -> VideoRecordingPanel(
+                    recordingUiState = recordingUiState,
+                    permissionMessageVisible = permissionMessageVisible,
+                    canStartRecording = category != null,
+                    onBindPreview = { previewView ->
+                        recordingViewModel.bindVideoPreview(
+                            context = context,
+                            lifecycleOwner = lifecycleOwner,
+                            previewView = previewView,
                         )
-                    } else {
-                        shouldStartAfterPermissionGrant = true
-                        permissionLauncher.launch(requiredRecordingPermissions())
+                    },
+                    onStartRecording = startRecording@{
+                        if (category == null) {
+                            permissionMessageVisible = true
+                            return@startRecording
+                        }
+
+                        if (hasRecordingPermissions(context, RecordingMediaType.Video)) {
+                            recordingViewModel.startVideoRecording(
+                                context = context,
+                                category = category,
+                                activityId = activityId,
+                            )
+                        } else {
+                            shouldStartAfterPermissionGrant = true
+                            permissionLauncher.launch(
+                                requiredRecordingPermissions(RecordingMediaType.Video),
+                            )
+                        }
+                    },
+                    onStopRecording = recordingViewModel::stopRecording,
+                )
+
+                null -> Text(
+                    text = stringResource(R.string.recording_media_type_required),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecordingMediaTypeTiles(
+    selectedMediaType: RecordingMediaType?,
+    enabled: Boolean,
+    onMediaTypeSelected: (RecordingMediaType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RecordingMediaTypeTile(
+            label = stringResource(R.string.recording_media_type_audio),
+            selected = selectedMediaType == RecordingMediaType.Audio,
+            enabled = enabled,
+            onClick = { onMediaTypeSelected(RecordingMediaType.Audio) },
+            modifier = Modifier.weight(1f),
+        )
+
+        RecordingMediaTypeTile(
+            label = stringResource(R.string.recording_media_type_video),
+            selected = selectedMediaType == RecordingMediaType.Video,
+            enabled = enabled,
+            onClick = { onMediaTypeSelected(RecordingMediaType.Video) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun RecordingMediaTypeTile(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedCard(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(72.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outline
+            },
+        ),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun VideoRecordingPanel(
+    recordingUiState: RecordingUiState,
+    permissionMessageVisible: Boolean,
+    canStartRecording: Boolean,
+    onBindPreview: (PreviewView) -> Unit,
+    onStartRecording: () -> Unit,
+    onStopRecording: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AndroidView(
+                factory = { context ->
+                    PreviewView(context).apply {
+                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                        onBindPreview(this)
                     }
                 },
-                onStopRecording = recordingViewModel::stopRecording,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(
+                    onClick = onStartRecording,
+                    enabled = recordingUiState.canStartRecording && canStartRecording,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(text = stringResource(R.string.recording_start_button))
+                }
+
+                OutlinedButton(
+                    onClick = onStopRecording,
+                    enabled = recordingUiState.canStopRecording,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(text = stringResource(R.string.recording_stop_button))
+                }
+            }
+
+            RecordingStatusText(
+                recordingUiState = recordingUiState,
+                permissionMessageVisible = permissionMessageVisible,
             )
         }
     }
@@ -352,16 +562,25 @@ private fun RecordingStatusText(
     )
 }
 
-private fun hasRecordingPermissions(context: android.content.Context): Boolean =
-    requiredRecordingPermissions().all { permission ->
+private fun hasRecordingPermissions(
+    context: android.content.Context,
+    mediaType: RecordingMediaType,
+): Boolean =
+    requiredRecordingPermissions(mediaType).all { permission ->
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
     }
 
-private fun requiredRecordingPermissions(): Array<String> =
+private fun requiredRecordingPermissions(mediaType: RecordingMediaType?): Array<String> =
     buildList {
-        add(Manifest.permission.RECORD_AUDIO)
+        when (mediaType) {
+            RecordingMediaType.Audio -> add(Manifest.permission.RECORD_AUDIO)
+            RecordingMediaType.Video -> add(Manifest.permission.CAMERA)
+            null -> Unit
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.POST_NOTIFICATIONS)
+            if (mediaType == RecordingMediaType.Audio) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }.toTypedArray()
 

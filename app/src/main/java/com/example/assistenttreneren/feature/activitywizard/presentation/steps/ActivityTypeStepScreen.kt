@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,7 @@ fun ActivityTypeStepScreen(
     onTitleChanged: (String) -> Unit,
     onActivityCategorySelected: (String) -> Unit,
     onExistingActivitySelected: (String) -> Unit,
+    onRetryLoadExistingActivitiesClicked: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateNext: () -> Unit,
 ) {
@@ -59,6 +61,7 @@ fun ActivityTypeStepScreen(
         onNavigateBack = onNavigateBack,
         onNavigateNext = onNavigateNext,
         isNextEnabled = uiState.canContinueFromActivityType,
+        isBackEnabled = !uiState.isCreatingActivity,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -98,8 +101,34 @@ fun ActivityTypeStepScreen(
                 activities = uiState.existingActivities,
                 selectedActivity = uiState.selectedExistingActivity,
                 title = uiState.title,
+                isLoading = uiState.isLoadingActivities,
+                errorMessage = uiState.activityErrorMessage,
                 onExistingActivitySelected = onExistingActivitySelected,
+                onRetryLoadExistingActivitiesClicked = onRetryLoadExistingActivitiesClicked,
             )
+        }
+
+        if (uiState.isCreateActivityFormVisible && uiState.activityErrorMessage != null) {
+            Text(
+                text = uiState.activityErrorMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        if (uiState.isCreatingActivity) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CircularProgressIndicator()
+                Text(
+                    text = stringResource(R.string.wizard_activity_creating_status),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -172,7 +201,10 @@ private fun ExistingActivityForm(
     activities: List<ExistingCoachActivityUiModel>,
     selectedActivity: ExistingCoachActivityUiModel?,
     title: String,
+    isLoading: Boolean,
+    errorMessage: String?,
     onExistingActivitySelected: (String) -> Unit,
+    onRetryLoadExistingActivitiesClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
@@ -194,12 +226,15 @@ private fun ExistingActivityForm(
                     onClick = {
                         isMenuExpanded = true
                     },
-                    enabled = activities.isNotEmpty(),
+                    enabled = activities.isNotEmpty() && !isLoading,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = selectedActivity?.dropdownLabel
-                            ?: stringResource(R.string.wizard_existing_activity_dropdown_label),
+                        text = when {
+                            isLoading -> stringResource(R.string.wizard_existing_activity_loading)
+                            else -> selectedActivity?.dropdownLabel
+                                ?: stringResource(R.string.wizard_existing_activity_dropdown_label)
+                        },
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -223,6 +258,22 @@ private fun ExistingActivityForm(
                             },
                         )
                     }
+                }
+            }
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+
+                OutlinedButton(
+                    onClick = onRetryLoadExistingActivitiesClicked,
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = stringResource(R.string.wizard_retry_button))
                 }
             }
 

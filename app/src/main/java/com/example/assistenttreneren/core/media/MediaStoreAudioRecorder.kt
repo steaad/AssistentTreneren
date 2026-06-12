@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingMediaType
 import com.example.assistenttreneren.feature.recording.domain.model.RecordingSession
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
@@ -78,6 +79,8 @@ class MediaStoreAudioRecorder @Inject constructor(
                 activityId = recording.activityId,
                 displayName = recording.displayName,
                 contentUri = recording.contentUri.toString(),
+                mediaType = RecordingMediaType.Audio,
+                mimeType = AUDIO_MIME_TYPE,
                 durationMillis = System.currentTimeMillis() - recording.startedAtMillis,
                 category = recording.category,
                 subCategory = recording.subCategory,
@@ -107,7 +110,7 @@ class MediaStoreAudioRecorder @Inject constructor(
     private fun createMediaStoreUri(displayName: String): Uri {
         val contentValues = ContentValues().apply {
             put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
-            put(MediaStore.Audio.Media.MIME_TYPE, "audio/mp4")
+            put(MediaStore.Audio.Media.MIME_TYPE, AUDIO_MIME_TYPE)
             put(
                 MediaStore.Audio.Media.RELATIVE_PATH,
                 "${Environment.DIRECTORY_MUSIC}/AssistentTreneren",
@@ -171,4 +174,8 @@ class MediaStoreAudioRecorder @Inject constructor(
         val subCategory: String,
         val startedAtMillis: Long,
     )
+
+    private companion object {
+        const val AUDIO_MIME_TYPE = "audio/mp4"
+    }
 }

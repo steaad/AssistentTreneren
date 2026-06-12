@@ -1,6 +1,7 @@
 package com.example.assistenttreneren.feature.recording.data.mapper
 
 import com.example.assistenttreneren.core.database.entity.LocalRecordingEntity
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingMediaType
 import com.example.assistenttreneren.feature.recording.domain.model.RecordingSession
 
 fun LocalRecordingEntity.toRecordingSession(): RecordingSession =
@@ -9,6 +10,8 @@ fun LocalRecordingEntity.toRecordingSession(): RecordingSession =
         activityId = activityId,
         displayName = displayName,
         contentUri = contentUri,
+        mediaType = mediaType.toRecordingMediaType(),
+        mimeType = mimeType,
         durationMillis = durationMillis,
         category = category,
         subCategory = subCategory,
@@ -21,8 +24,14 @@ fun RecordingSession.toLocalRecordingEntity(): LocalRecordingEntity =
         activityId = activityId,
         displayName = displayName,
         contentUri = contentUri,
+        mediaType = mediaType.name,
+        mimeType = mimeType,
         durationMillis = durationMillis,
         category = category,
         subCategory = subCategory,
         createdAtMillis = createdAtMillis,
     )
+
+private fun String.toRecordingMediaType(): RecordingMediaType =
+    runCatching { RecordingMediaType.valueOf(this) }
+        .getOrDefault(RecordingMediaType.Audio)

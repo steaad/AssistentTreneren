@@ -26,9 +26,12 @@
     <string name="wizard_select_existing_activity_button">Velg eksisterende aktivitet</string>
     <string name="wizard_activity_title_label">Tittel</string>
     <string name="wizard_existing_activity_dropdown_label">Velg aktivitet</string>
+    <string name="wizard_existing_activity_loading">Henter aktiviteter...</string>
     <string name="wizard_existing_activity_recordings_label">Opptak</string>
     <string name="wizard_existing_activity_no_recordings">Ingen opptak å vise.</string>
     <string name="wizard_existing_activity_recording_details">%1$s - %2$d sek</string>
+    <string name="wizard_activity_creating_status">Oppretter aktivitet...</string>
+    <string name="wizard_retry_button">Prøv igjen</string>
     <string name="activity_category_match">Kamp</string>
     <string name="activity_category_training">Trening</string>
     <string name="activity_category_meeting">Møte</string>
@@ -37,6 +40,9 @@
     <string name="wizard_audio_recording_placeholder">Opptaksfunksjonalitet kommer her.</string>
     <string name="wizard_audio_recording_description">Start og stopp lydopptak for denne aktiviteten.</string>
     <string name="recording_sub_category_label">Underkategori</string>
+    <string name="recording_media_type_audio">Lyd</string>
+    <string name="recording_media_type_video">Video</string>
+    <string name="recording_media_type_required">Velg lyd eller video for å starte opptak.</string>
     <string name="recording_start_button">Start opptak</string>
     <string name="recording_stop_button">Stopp opptak</string>
     <string name="recording_idle_status">Klar for opptak.</string>

@@ -5,6 +5,8 @@ data class RecordingSession(
     val activityId: String?,
     val displayName: String,
     val contentUri: String,
+    val mediaType: RecordingMediaType,
+    val mimeType: String,
     val durationMillis: Long,
     val category: String,
     val subCategory: String,

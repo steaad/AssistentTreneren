@@ -13,6 +13,7 @@ class RecordingFileNameFormatter @Inject constructor() {
         category: String,
         subCategory: String,
         createdAtMillis: Long,
+        extension: String = "m4a",
     ): String {
         val createdAt = Date(createdAtMillis)
         return buildString {
@@ -23,7 +24,8 @@ class RecordingFileNameFormatter @Inject constructor() {
             append(timeFormatter.format(createdAt))
             append("_")
             append(dateFormatter.format(createdAt))
-            append(".m4a")
+            append(".")
+            append(extension)
         }
     }
 

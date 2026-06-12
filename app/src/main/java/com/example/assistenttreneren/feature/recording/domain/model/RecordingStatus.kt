@@ -6,6 +6,7 @@ sealed interface RecordingStatus {
     data class Recording(
         val recordingId: String,
         val displayName: String,
+        val mediaType: RecordingMediaType,
         val startedAtMillis: Long,
     ) : RecordingStatus
 

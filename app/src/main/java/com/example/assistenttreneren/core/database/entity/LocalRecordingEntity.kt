@@ -17,6 +17,8 @@ data class LocalRecordingEntity(
     val activityId: String?,
     val displayName: String,
     val contentUri: String,
+    val mediaType: String,
+    val mimeType: String,
     val durationMillis: Long,
     val category: String,
     val subCategory: String,

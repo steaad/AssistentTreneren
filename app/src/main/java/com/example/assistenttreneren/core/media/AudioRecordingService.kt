@@ -71,6 +71,7 @@ class AudioRecordingService : Service() {
                 RecordingStatus.Recording(
                     recordingId = activeRecording.recordingId,
                     displayName = activeRecording.displayName,
+                    mediaType = com.example.assistenttreneren.feature.recording.domain.model.RecordingMediaType.Audio,
                     startedAtMillis = activeRecording.startedAtMillis,
                 ),
             )

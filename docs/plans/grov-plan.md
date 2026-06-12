@@ -19,11 +19,12 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Auth refresh tester lagt til
 - [x] Avhengigheter lagt til
 - [x] Lokal lagring etablert
-- [ ] Wizard koblet til ekte state/backend
-- [ ] Opptak metadata lagres lokalt
+- [x] Wizard koblet til ekte state/backend
+- [x] Opptak metadata lagres lokalt
 - [ ] Opplasting og statuspolling implementert
 - [ ] Oppsummering implementert
 - [ ] Historikk og Analyse MVP implementert
+- [ ] Full offline opprettelse av ny aktivitet planlagt for senere fase
 - [ ] Tester lagt til
 - [ ] Manuell verifikasjon fullført
 
@@ -88,38 +89,59 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 
 ## 4. Trener aktivitet-wizard
 
-- [ ] Erstatt sampledata i `CoachActivityWizardViewModel`.
-- [ ] Injiser relevante use cases i wizard ViewModel.
-- [ ] Last eksisterende aktiviteter fra repository.
-- [ ] Vis loading-state ved henting av eksisterende aktiviteter.
-- [ ] Vis feilstate og retry ved nettverksfeil.
-- [ ] Opprett ny aktivitet før bruker går til opptakssteget.
-- [ ] Sørg for at `activityId` alltid finnes ved opptaksstart.
-- [ ] Lagre tittel og aktivitetskategori på ny aktivitet.
-- [ ] Bevar state for påbegynt aktivitet.
-- [ ] Sørg for at valgt eksisterende aktivitet beholder tilhørende opptak.
-- [ ] Hold business logic ute av composables.
-- [ ] Hold wizard-state som immutable `StateFlow`.
+- [x] Erstatt sampledata i `CoachActivityWizardViewModel`.
+- [x] Injiser relevante use cases i wizard ViewModel.
+- [x] Last eksisterende aktiviteter fra repository.
+- [x] Vis loading-state ved henting av eksisterende aktiviteter.
+- [x] Vis feilstate og retry ved nettverksfeil.
+- [x] Opprett ny aktivitet før bruker går til opptakssteget.
+- [x] Sørg for at `activityId` alltid finnes ved opptaksstart.
+- [x] Lagre tittel og aktivitetskategori på ny aktivitet.
+- [x] Bevar state for påbegynt aktivitet.
+- [x] Sørg for at valgt eksisterende aktivitet beholder tilhørende opptak.
+- [x] Hold business logic ute av composables.
+- [x] Hold wizard-state som immutable `StateFlow`.
 
 ## 5. Opptak
 
-- [ ] Behold eksisterende MediaStore-basert lydlagring.
-- [ ] Behold eksisterende foreground service for opptak.
-- [ ] Behold stoppeklokke og start/stopp-kontroller i steg 2.
-- [ ] Lagre fullført `RecordingSession` persistent.
-- [ ] Knytt hvert opptak til riktig `activityId`.
-- [ ] Lagre metadata:
-  - [ ] `recordingId`
-  - [ ] `activityId`
-  - [ ] `displayName`
-  - [ ] `contentUri`
-  - [ ] `durationMillis`
-  - [ ] `category`
-  - [ ] `subCategory`
-  - [ ] `createdAtMillis`
+- [x] Legg til CameraX-avhengigheter for videoopptak.
+- [x] Legg til kamera-permission.
+- [x] Legg til opptakstype i domain:
+  - [x] `RecordingMediaType.Audio`
+  - [x] `RecordingMediaType.Video`
+- [x] Behold eksisterende MediaStore-basert lydlagring.
+- [x] Behold eksisterende foreground service for lydopptak.
+- [x] Legg til MediaStore-basert videolagring via CameraX.
+- [x] Sørg for at video tas opp uten lyd.
+- [x] Legg til lite video-preview-vindu i wizard steg 2.
+- [x] La bruker velge opptakstype først i wizard steg 2:
+  - [x] `Lyd`
+  - [x] `Video`
+- [x] Bruk samme underkategorier for lyd og video.
+- [x] Vis lydpanel ved lydvalg:
+  - [x] stoppeklokke
+  - [x] start/stopp
+- [x] Vis videopanel ved videovalg:
+  - [x] preview-vindu
+  - [x] start/stopp
+- [x] Hindre samtidig lyd og video fra samme enhet.
+- [x] Lagre fullført `RecordingSession` persistent.
+- [x] Knytt hvert opptak til riktig `activityId`.
+- [x] Lagre metadata:
+  - [x] `recordingId`
+  - [x] `activityId`
+  - [x] `displayName`
+  - [x] `contentUri`
+  - [x] `mediaType`
+  - [x] `mimeType`
+  - [x] `durationMillis`
+  - [x] `category`
+  - [x] `subCategory`
+  - [x] `createdAtMillis`
 - [ ] Vis fullførte opptak i upload-steget.
-- [ ] Håndter opptak uten nettverk.
-- [ ] Håndter app bakgrunn/forgrunn under aktivt opptak.
+- [x] Håndter opptak uten nettverk.
+- [x] Håndter app bakgrunn/forgrunn under aktivt lydopptak.
+- [ ] Manuelt verifiser video preview og videoopptak på fysisk enhet.
 
 ## 6. Opplasting
 
@@ -177,6 +199,22 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [ ] Manuelt verifiser opplasting med og uten nettverk.
 - [ ] Manuelt verifiser WiFi-preferanse for store lydfiler.
 
+## 9. Fremtidig offline synk
+
+- [ ] Implementer full offline opprettelse av ny aktivitet.
+- [ ] Opprett lokal midlertidig aktivitets-ID for aktiviteter laget uten nett.
+- [ ] Legg til sync-status for aktivitet:
+  - [ ] `PendingCreate`
+  - [ ] `Synced`
+  - [ ] `Failed`
+- [ ] Legg aktivitet-opprettelse i lokal sync-kø når backend ikke er tilgjengelig.
+- [ ] Synkroniser aktivitet til backend når nett er tilbake.
+- [ ] Lagre mapping fra lokal aktivitets-ID til backend `activityId`.
+- [ ] Oppdater lokale opptak som peker på midlertidig aktivitets-ID etter vellykket sync.
+- [ ] Oppdater upload-jobber som peker på midlertidig aktivitets-ID etter vellykket sync.
+- [ ] Håndter retry og feilstatus for aktiviteter som ikke kan synkroniseres.
+- [ ] Legg til tester for lokal aktivitet, sync-kø og ID-mapping.
+
 ## Antakelser
 
 - MVP prioriterer Trener aktivitet-flyten, opplasting/status, enkel Historikk og enkel Analysevisning.
@@ -186,3 +224,4 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - Lyd lagres fortsatt lokalt på telefonen via MediaStore.
 - Analyseproduksjon skjer på backend etter transkribering og LLM-behandling.
 - Debug-bypass er midlertidig og skal holdes separat fra ekte auth.
+- Full offline opprettelse av ny aktivitet utsettes til senere sync/queue-fase.

@@ -2,6 +2,8 @@ package com.example.assistenttreneren.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.assistenttreneren.core.database.AssistentTrenerenDatabase
 import com.example.assistenttreneren.core.database.dao.AnalysisMetadataDao
 import com.example.assistenttreneren.core.database.dao.CoachActivityDao
@@ -26,7 +28,9 @@ object DatabaseModule {
             context,
             AssistentTrenerenDatabase::class.java,
             DATABASE_NAME,
-        ).build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideCoachActivityDao(
@@ -49,4 +53,15 @@ object DatabaseModule {
     ): AnalysisMetadataDao = database.analysisMetadataDao()
 
     private const val DATABASE_NAME = "assistent_treneren.db"
+
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE local_recordings ADD COLUMN mediaType TEXT NOT NULL DEFAULT 'Audio'",
+            )
+            db.execSQL(
+                "ALTER TABLE local_recordings ADD COLUMN mimeType TEXT NOT NULL DEFAULT 'audio/mp4'",
+            )
+        }
+    }
 }
