@@ -5,8 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +21,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -144,19 +146,13 @@ fun AudioRecordingStepScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = stringResource(R.string.wizard_audio_recording_description),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            RecordingMediaTypeTiles(
+            RecordingMediaTypeSegmentedButtons(
                 selectedMediaType = recordingUiState.selectedMediaType,
                 enabled = !recordingUiState.isRecording,
                 onMediaTypeSelected = recordingViewModel::onMediaTypeSelected,
             )
 
-            SubCategoryTiles(
+            SubCategorySegmentedButtons(
                 subCategories = subCategories,
                 selectedSubCategory = recordingUiState.subCategory,
                 enabled = !recordingUiState.isRecording,
@@ -234,79 +230,31 @@ fun AudioRecordingStepScreen(
 }
 
 @Composable
-private fun RecordingMediaTypeTiles(
+private fun RecordingMediaTypeSegmentedButtons(
     selectedMediaType: RecordingMediaType?,
     enabled: Boolean,
     onMediaTypeSelected: (RecordingMediaType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        RecordingMediaTypeTile(
-            label = stringResource(R.string.recording_media_type_audio),
-            selected = selectedMediaType == RecordingMediaType.Audio,
-            enabled = enabled,
-            onClick = { onMediaTypeSelected(RecordingMediaType.Audio) },
-            modifier = Modifier.weight(1f),
-        )
+    val mediaTypes = listOf(
+        RecordingMediaType.Audio to stringResource(R.string.recording_media_type_audio),
+        RecordingMediaType.Video to stringResource(R.string.recording_media_type_video),
+    )
 
-        RecordingMediaTypeTile(
-            label = stringResource(R.string.recording_media_type_video),
-            selected = selectedMediaType == RecordingMediaType.Video,
-            enabled = enabled,
-            onClick = { onMediaTypeSelected(RecordingMediaType.Video) },
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun RecordingMediaTypeTile(
-    label: String,
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedCard(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.height(72.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outline
-            },
-        ),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            },
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+        mediaTypes.forEachIndexed { index, (mediaType, label) ->
+            SegmentedButton(
+                selected = selectedMediaType == mediaType,
+                onClick = { onMediaTypeSelected(mediaType) },
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = mediaTypes.size,
+                ),
+                enabled = enabled,
+                icon = {},
+                label = {
+                    SegmentedButtonText(text = label)
                 },
-                textAlign = TextAlign.Center,
             )
         }
     }
@@ -444,96 +392,48 @@ private fun RecordingControlPanel(
 }
 
 @Composable
-private fun SubCategoryTiles(
+private fun SubCategorySegmentedButtons(
     subCategories: List<RecordingSubCategory>,
     selectedSubCategory: String,
     enabled: Boolean,
     onSubCategorySelected: (RecordingSubCategory) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        subCategories.chunked(2).forEach { rowSubCategories ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                rowSubCategories.forEach { subCategory ->
-                    SubCategoryTile(
-                        label = subCategory.displayName,
-                        selected = subCategory.displayName == selectedSubCategory,
-                        enabled = enabled,
-                        onClick = {
-                            onSubCategorySelected(subCategory)
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+    if (subCategories.isEmpty()) {
+        return
+    }
 
-                if (rowSubCategories.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
-            }
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+        subCategories.forEachIndexed { index, subCategory ->
+            SegmentedButton(
+                selected = subCategory.displayName == selectedSubCategory,
+                onClick = { onSubCategorySelected(subCategory) },
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = subCategories.size,
+                ),
+                enabled = enabled,
+                icon = {},
+                label = {
+                    SegmentedButtonText(text = subCategory.displayName)
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun SubCategoryTile(
-    label: String,
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
+private fun SegmentedButtonText(
+    text: String,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
-    OutlinedCard(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.height(72.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outline
-            },
-        ),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = containerColor,
-            disabledContainerColor = containerColor,
-            contentColor = contentColor,
-            disabledContentColor = contentColor,
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = contentColor,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
+    Text(
+        text = text,
+        modifier = modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable

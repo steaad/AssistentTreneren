@@ -36,9 +36,8 @@
     <string name="activity_category_training">Trening</string>
     <string name="activity_category_meeting">Møte</string>
     <string name="activity_category_scouting">Speiding</string>
-    <string name="wizard_audio_recording_title">Opptak av lyd</string>
+    <string name="wizard_audio_recording_title">Opptak av aktivitet</string>
     <string name="wizard_audio_recording_placeholder">Opptaksfunksjonalitet kommer her.</string>
-    <string name="wizard_audio_recording_description">Start og stopp lydopptak for denne aktiviteten.</string>
     <string name="recording_sub_category_label">Underkategori</string>
     <string name="recording_media_type_audio">Lyd</string>
     <string name="recording_media_type_video">Video</string>
