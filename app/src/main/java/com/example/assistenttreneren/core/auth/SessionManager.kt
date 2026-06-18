@@ -15,8 +15,12 @@ class SessionManager @Inject constructor(
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
     val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
 
+    private val _isBackendBypassActive = MutableStateFlow(false)
+    val isBackendBypassActive: StateFlow<Boolean> = _isBackendBypassActive.asStateFlow()
+
     suspend fun initializeSession() {
         val accessToken = tokenStorage.getAccessToken()
+        _isBackendBypassActive.value = false
 
         _sessionState.value = when {
             accessToken.isNullOrBlank() -> SessionState.Unauthenticated
@@ -41,17 +45,20 @@ class SessionManager @Inject constructor(
         }
     }
 
-    fun onLoginSucceeded() {
+    fun onLoginSucceeded(isBackendBypass: Boolean = false) {
+        _isBackendBypassActive.value = isBackendBypass
         _sessionState.value = SessionState.Authenticated
     }
 
     suspend fun logout() {
         tokenStorage.clearTokens()
+        _isBackendBypassActive.value = false
         _sessionState.value = SessionState.Unauthenticated
     }
 
     suspend fun onSessionExpired() {
         tokenStorage.clearTokens()
+        _isBackendBypassActive.value = false
         _sessionState.value = SessionState.SessionExpired
     }
 }

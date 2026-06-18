@@ -3,6 +3,7 @@ package com.example.assistenttreneren.feature.activitywizard.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.assistenttreneren.BuildConfig
+import com.example.assistenttreneren.core.auth.SessionManager
 import com.example.assistenttreneren.feature.activitywizard.domain.model.CoachActivity
 import com.example.assistenttreneren.feature.activitywizard.domain.model.Recording
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityError
@@ -27,6 +28,7 @@ class CoachActivityWizardViewModel @Inject constructor(
     private val createCoachActivityUseCase: CreateCoachActivityUseCase,
     private val updateCoachActivityUseCase: UpdateCoachActivityUseCase,
     private val localCoachActivityRepository: LocalCoachActivityRepository,
+    private val sessionManager: SessionManager,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CoachActivityWizardUiState())
     val uiState: StateFlow<CoachActivityWizardUiState> = _uiState.asStateFlow()
@@ -132,6 +134,16 @@ class CoachActivityWizardViewModel @Inject constructor(
                 }
             }
 
+            if (isBackendBypassActive()) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingActivities = false,
+                        activityErrorMessage = null,
+                    )
+                }
+                return@launch
+            }
+
             when (val result = getCoachActivitiesUseCase()) {
                 is CoachActivityResult.Success -> {
                     localCoachActivityRepository.saveActivities(result.data)
@@ -181,7 +193,7 @@ class CoachActivityWizardViewModel @Inject constructor(
                 )
             }
 
-            if (BuildConfig.DEBUG) {
+            if (isBackendBypassActive()) {
                 createDebugActivityAndNavigate(
                     title = title,
                     activityCategory = activityCategory,
@@ -236,6 +248,9 @@ class CoachActivityWizardViewModel @Inject constructor(
             }
         }
     }
+
+    private fun isBackendBypassActive(): Boolean =
+        BuildConfig.DEBUG && sessionManager.isBackendBypassActive.value
 
     private suspend fun createDebugActivityAndNavigate(
         title: String,

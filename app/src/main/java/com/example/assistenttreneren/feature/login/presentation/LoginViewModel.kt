@@ -28,6 +28,7 @@ class LoginViewModel @Inject constructor(
                 emailError = null,
                 loginError = null,
                 isLoginSuccessful = false,
+                isBackendBypassLogin = false,
             )
         }
     }
@@ -39,6 +40,7 @@ class LoginViewModel @Inject constructor(
                 passwordError = null,
                 loginError = null,
                 isLoginSuccessful = false,
+                isBackendBypassLogin = false,
             )
         }
     }
@@ -62,6 +64,7 @@ class LoginViewModel @Inject constructor(
                     passwordError = validationResult.passwordError,
                     loginError = null,
                     isLoginSuccessful = false,
+                    isBackendBypassLogin = false,
                 )
             }
             return
@@ -75,6 +78,7 @@ class LoginViewModel @Inject constructor(
                     passwordError = null,
                     loginError = null,
                     isLoginSuccessful = false,
+                    isBackendBypassLogin = false,
                 )
             }
 
@@ -89,6 +93,7 @@ class LoginViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isLoginSuccessful = true,
+                            isBackendBypassLogin = false,
                             loginError = null,
                         )
                     }
@@ -99,6 +104,7 @@ class LoginViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isLoginSuccessful = false,
+                            isBackendBypassLogin = false,
                             loginError = result.error.toLoginError(),
                         )
                     }
@@ -115,6 +121,7 @@ class LoginViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 isLoginSuccessful = true,
+                isBackendBypassLogin = true,
                 loginError = null,
                 emailError = null,
                 passwordError = null,
@@ -127,7 +134,12 @@ class LoginViewModel @Inject constructor(
     }
 
     fun consumeLoginSuccess() {
-        _uiState.update { it.copy(isLoginSuccessful = false) }
+        _uiState.update {
+            it.copy(
+                isLoginSuccessful = false,
+                isBackendBypassLogin = false,
+            )
+        }
     }
 
     private fun validateCredentials(

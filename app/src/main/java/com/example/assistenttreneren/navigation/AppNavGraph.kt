@@ -49,7 +49,7 @@ import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
 fun AppNavGraph(
     sessionState: SessionState,
     loginViewModel: LoginViewModel,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (isBackendBypass: Boolean) -> Unit,
     onLogoutClicked: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),

@@ -42,7 +42,7 @@ import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (isBackendBypass: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     sessionMessage: String? = null,
 ) {
@@ -50,8 +50,9 @@ fun LoginScreen(
 
     LaunchedEffect(uiState.isLoginSuccessful) {
         if (uiState.isLoginSuccessful) {
+            val isBackendBypass = uiState.isBackendBypassLogin
             viewModel.consumeLoginSuccess()
-            onLoginSuccess()
+            onLoginSuccess(isBackendBypass)
         }
     }
 

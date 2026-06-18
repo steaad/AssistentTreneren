@@ -21,7 +21,36 @@ class SessionManagerTest {
         sessionManager.logout()
 
         assertTrue(tokenStorage.clearTokensCalled)
+        assertEquals(false, sessionManager.isBackendBypassActive.value)
         assertEquals(SessionState.Unauthenticated, sessionManager.sessionState.value)
+    }
+
+    @Test
+    fun onLoginSucceededDisablesBackendBypassForNormalLogin() {
+        val sessionManager = SessionManager(
+            tokenStorage = FakeTokenStorage(),
+            jwtDecoder = JwtDecoder(),
+            tokenRefresher = FakeTokenRefresher(),
+        )
+
+        sessionManager.onLoginSucceeded(isBackendBypass = false)
+
+        assertEquals(false, sessionManager.isBackendBypassActive.value)
+        assertEquals(SessionState.Authenticated, sessionManager.sessionState.value)
+    }
+
+    @Test
+    fun onLoginSucceededEnablesBackendBypassForDebugBypassLogin() {
+        val sessionManager = SessionManager(
+            tokenStorage = FakeTokenStorage(),
+            jwtDecoder = JwtDecoder(),
+            tokenRefresher = FakeTokenRefresher(),
+        )
+
+        sessionManager.onLoginSucceeded(isBackendBypass = true)
+
+        assertEquals(true, sessionManager.isBackendBypassActive.value)
+        assertEquals(SessionState.Authenticated, sessionManager.sessionState.value)
     }
 
     @Test

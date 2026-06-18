@@ -23,8 +23,8 @@ class AppSessionViewModel @Inject constructor(
         }
     }
 
-    fun onLoginSucceeded() {
-        sessionManager.onLoginSucceeded()
+    fun onLoginSucceeded(isBackendBypass: Boolean) {
+        sessionManager.onLoginSucceeded(isBackendBypass = isBackendBypass)
     }
 
     fun logout() {
