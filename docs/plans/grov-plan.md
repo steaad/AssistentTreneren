@@ -22,7 +22,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Wizard koblet til ekte state/backend
 - [x] Opptak metadata lagres lokalt
 - [x] Opplasting og statuspolling implementert
-- [ ] Oppsummering implementert
+- [x] Oppsummering implementert
 - [ ] Historikk og Analyse MVP implementert
 - [ ] Full offline opprettelse av ny aktivitet planlagt for senere fase
 - [ ] Tester lagt til
@@ -166,12 +166,12 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 
 ## 7. Oppsummering, Historikk og Analyse
 
-- [ ] Bygg ferdig steg 4 Oppsummering.
-- [ ] Vis aktivitetstittel.
-- [ ] Vis aktivitetskategori.
-- [ ] Vis opptak knyttet til aktiviteten.
-- [ ] Vis upload-statuser.
-- [ ] Gi tydelig avslutning tilbake til Home.
+- [x] Bygg ferdig steg 4 Oppsummering.
+- [x] Vis aktivitetstittel.
+- [x] Vis aktivitetskategori.
+- [x] Vis opptak knyttet til aktiviteten.
+- [x] Vis upload-statuser.
+- [x] Gi tydelig avslutning tilbake til Home.
 - [ ] Lag enkel Historikk-skjerm.
 - [ ] Vis aktiviteter fra lokal cache og backend.
 - [ ] Lag enkel Analyse-liste.

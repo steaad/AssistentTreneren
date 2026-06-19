@@ -67,6 +67,16 @@
     <string name="upload_retry_button">Prøv igjen</string>
     <string name="wizard_summary_title">Oppsummering</string>
     <string name="wizard_summary_placeholder">Oppsummering av treneraktiviteten kommer her.</string>
+    <string name="summary_missing_title">Uten tittel</string>
+    <string name="summary_missing_category">Uten kategori</string>
+    <string name="summary_activity_counts">%1$d opptak: %2$d lyd, %3$d video</string>
+    <string name="summary_upload_counts">%1$d fullført, %2$d feilet</string>
+    <string name="summary_recordings_title">Opptak</string>
+    <string name="summary_no_recordings">Ingen opptak er registrert for denne aktiviteten.</string>
+    <string name="summary_recording_details">%1$s - %2$s - %3$s</string>
+    <string name="summary_uploads_title">Opplasting</string>
+    <string name="summary_no_uploads">Ingen opplastinger er startet.</string>
+    <string name="summary_finish_hint">Fullfør sender deg tilbake til Hjem. Aktive opplastinger fortsetter i bakgrunnen.</string>
     <string name="analysis_title">Analyse</string>
     <string name="history_title">Historikk</string>
     <string name="navigate_back_button">Tilbake</string>

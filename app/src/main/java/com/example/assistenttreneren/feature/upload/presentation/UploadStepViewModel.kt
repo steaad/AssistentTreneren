@@ -2,6 +2,7 @@ package com.example.assistenttreneren.feature.upload.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingMediaType
 import com.example.assistenttreneren.feature.recording.domain.model.RecordingSession
 import com.example.assistenttreneren.feature.recording.domain.repository.LocalRecordingRepository
 import com.example.assistenttreneren.feature.upload.domain.model.UploadJob
@@ -108,6 +109,7 @@ class UploadStepViewModel @Inject constructor(
     ): UploadStepUiState {
         val jobsByRecordingId = uploadJobs.groupBy { it.recordingId }
         val recordingNames = recordings.associate { it.recordingId to it.displayName }
+        val recordingMediaTypes = recordings.associate { it.recordingId to it.mediaType }
         val recordingUiModels = recordings.map { recording ->
             UploadRecordingUiModel(
                 recordingId = recording.recordingId,
@@ -135,6 +137,7 @@ class UploadStepViewModel @Inject constructor(
                     recordingId = uploadJob.recordingId,
                     recordingDisplayName = recordingNames[uploadJob.recordingId]
                         ?: uploadJob.recordingId,
+                    mediaType = recordingMediaTypes[uploadJob.recordingId] ?: RecordingMediaType.Audio,
                     status = uploadJob.status,
                     statusMessage = uploadJob.statusMessage,
                     progressPercent = uploadJob.progressPercent,

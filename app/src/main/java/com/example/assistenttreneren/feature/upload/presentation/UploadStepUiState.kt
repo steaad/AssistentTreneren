@@ -35,6 +35,7 @@ data class UploadJobUiModel(
     val uploadJobId: String,
     val recordingId: String,
     val recordingDisplayName: String,
+    val mediaType: RecordingMediaType,
     val status: UploadStatus,
     val statusMessage: String?,
     val progressPercent: Int?,
