@@ -19,6 +19,9 @@ class LocalUploadRepositoryImpl @Inject constructor(
     override suspend fun getUploadJob(uploadJobId: String): UploadJob? =
         uploadJobDao.getUploadJob(uploadJobId)?.toUploadJob()
 
+    override suspend fun getLatestUploadJobForRecording(recordingId: String): UploadJob? =
+        uploadJobDao.getLatestUploadJobForRecording(recordingId)?.toUploadJob()
+
     override suspend fun saveUploadJob(uploadJob: UploadJob) {
         uploadJobDao.upsertUploadJob(uploadJob.toUploadJobEntity())
     }

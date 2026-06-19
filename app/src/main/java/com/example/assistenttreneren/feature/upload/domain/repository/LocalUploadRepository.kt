@@ -8,5 +8,7 @@ interface LocalUploadRepository {
 
     suspend fun getUploadJob(uploadJobId: String): UploadJob?
 
+    suspend fun getLatestUploadJobForRecording(recordingId: String): UploadJob?
+
     suspend fun saveUploadJob(uploadJob: UploadJob)
 }

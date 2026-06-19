@@ -10,4 +10,6 @@ data class UploadRecordingMetadataDto(
     val category: String,
     val subCategory: String,
     val createdAtMillis: Long,
+    val mediaType: String,
+    val mimeType: String,
 )

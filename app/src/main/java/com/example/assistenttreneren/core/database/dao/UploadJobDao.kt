@@ -22,4 +22,14 @@ interface UploadJobDao {
 
     @Query("SELECT * FROM upload_jobs WHERE uploadJobId = :uploadJobId")
     suspend fun getUploadJob(uploadJobId: String): UploadJobEntity?
+
+    @Query(
+        """
+        SELECT * FROM upload_jobs
+        WHERE recordingId = :recordingId
+        ORDER BY updatedAtMillis DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun getLatestUploadJobForRecording(recordingId: String): UploadJobEntity?
 }

@@ -3,10 +3,11 @@ package com.example.assistenttreneren.feature.activitywizard.presentation.compon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,8 @@ fun CoachActivityWizardScaffold(
     content: @Composable () -> Unit,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -62,20 +65,23 @@ fun CoachActivityWizardScaffold(
             )
 
             Column(
-                modifier = if (contentFillsAvailableSpace) {
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .then(
+                        if (contentFillsAvailableSpace) {
+                            Modifier
+                        } else {
+                            Modifier.verticalScroll(scrollState)
+                        },
+                    ),
+                verticalArrangement = if (contentFillsAvailableSpace) {
+                    Arrangement.spacedBy(16.dp)
                 } else {
-                    Modifier.fillMaxWidth()
+                    Arrangement.Top
                 },
-                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content()
-            }
-
-            if (!contentFillsAvailableSpace) {
-                Spacer(modifier = Modifier.weight(1f))
             }
 
             Row(

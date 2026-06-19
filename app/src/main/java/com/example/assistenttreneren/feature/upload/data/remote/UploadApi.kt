@@ -15,7 +15,7 @@ interface UploadApi {
     @POST("api/activities/{activityId}/recordings")
     suspend fun uploadRecording(
         @Path("activityId") activityId: String,
-        @Part audio: MultipartBody.Part,
+        @Part media: MultipartBody.Part,
         @Part("metadata") metadata: RequestBody,
     ): UploadRecordingResponseDto
 

@@ -21,7 +21,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Lokal lagring etablert
 - [x] Wizard koblet til ekte state/backend
 - [x] Opptak metadata lagres lokalt
-- [ ] Opplasting og statuspolling implementert
+- [x] Opplasting og statuspolling implementert
 - [ ] Oppsummering implementert
 - [ ] Historikk og Analyse MVP implementert
 - [ ] Full offline opprettelse av ny aktivitet planlagt for senere fase
@@ -138,31 +138,31 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
   - [x] `category`
   - [x] `subCategory`
   - [x] `createdAtMillis`
-- [ ] Vis fullførte opptak i upload-steget.
+- [x] Vis fullførte opptak i upload-steget.
 - [x] Håndter opptak uten nettverk.
 - [x] Håndter app bakgrunn/forgrunn under aktivt lydopptak.
 - [ ] Manuelt verifiser video preview og videoopptak på fysisk enhet.
 
 ## 6. Opplasting
 
-- [ ] Vis lokale opptak for valgt aktivitet i steg 3.
-- [ ] La bruker velge ett opptak om gangen.
-- [ ] Legg til `Last opp`-handling for valgt opptak.
-- [ ] Opprett persistent upload-jobb ved opplasting.
-- [ ] Bruk WorkManager for bakgrunnsopplasting.
+- [x] Vis lokale opptak for valgt aktivitet i steg 3.
+- [x] La bruker velge ett opptak om gangen.
+- [x] Legg til `Last opp`-handling for valgt opptak.
+- [x] Opprett persistent upload-jobb ved opplasting.
+- [x] Bruk WorkManager for bakgrunnsopplasting.
 - [ ] Foretrekk WiFi for store lydfiler.
-- [ ] Støtt flere samtidige eller køede upload-jobber.
-- [ ] Poll backend for upload-status.
-- [ ] Vis statuspanel med flere jobber.
-- [ ] Støtt statusene:
-  - [ ] `Queued`
-  - [ ] `Uploading`
-  - [ ] `ProcessingAudio`
-  - [ ] `Transcribing`
-  - [ ] `Completed`
-  - [ ] `Failed`
-- [ ] Gi bruker retry-mulighet ved feil.
-- [ ] Ikke blokker bruker fra å starte flere opplastinger.
+- [x] Støtt flere samtidige eller køede upload-jobber.
+- [x] Poll backend for upload-status.
+- [x] Vis statuspanel med flere jobber.
+- [x] Støtt statusene:
+  - [x] `Queued`
+  - [x] `Uploading`
+  - [x] `ProcessingAudio`
+  - [x] `Transcribing`
+  - [x] `Completed`
+  - [x] `Failed`
+- [x] Gi bruker retry-mulighet ved feil.
+- [x] Ikke blokker bruker fra å starte flere opplastinger.
 
 ## 7. Oppsummering, Historikk og Analyse
 
