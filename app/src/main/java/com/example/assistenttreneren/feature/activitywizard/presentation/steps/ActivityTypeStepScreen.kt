@@ -15,6 +15,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Edit
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardStep
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardUiState
@@ -61,7 +66,7 @@ fun ActivityTypeStepScreen(
         onNavigateBack = onNavigateBack,
         onNavigateNext = onNavigateNext,
         isNextEnabled = uiState.canContinueFromActivityType,
-        isBackEnabled = !uiState.isCreatingActivity,
+        isBackEnabled = !uiState.isCreatingActivity && !uiState.isUpdatingExistingActivity,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -103,6 +108,8 @@ fun ActivityTypeStepScreen(
                 title = uiState.title,
                 isLoading = uiState.isLoadingActivities,
                 errorMessage = uiState.activityErrorMessage,
+                isUpdatingActivity = uiState.isUpdatingExistingActivity,
+                onTitleChanged = onTitleChanged,
                 onExistingActivitySelected = onExistingActivitySelected,
                 onRetryLoadExistingActivitiesClicked = onRetryLoadExistingActivitiesClicked,
             )
@@ -116,7 +123,7 @@ fun ActivityTypeStepScreen(
             )
         }
 
-        if (uiState.isCreatingActivity) {
+        if (uiState.isCreatingActivity || uiState.isUpdatingExistingActivity) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -124,7 +131,13 @@ fun ActivityTypeStepScreen(
             ) {
                 CircularProgressIndicator()
                 Text(
-                    text = stringResource(R.string.wizard_activity_creating_status),
+                    text = stringResource(
+                        if (uiState.isCreatingActivity) {
+                            R.string.wizard_activity_creating_status
+                        } else {
+                            R.string.wizard_activity_updating_status
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -203,11 +216,14 @@ private fun ExistingActivityForm(
     title: String,
     isLoading: Boolean,
     errorMessage: String?,
+    isUpdatingActivity: Boolean,
+    onTitleChanged: (String) -> Unit,
     onExistingActivitySelected: (String) -> Unit,
     onRetryLoadExistingActivitiesClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
+    var isTitleEditMode by remember(selectedActivity?.activityId) { mutableStateOf(false) }
 
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),
@@ -226,18 +242,27 @@ private fun ExistingActivityForm(
                     onClick = {
                         isMenuExpanded = true
                     },
-                    enabled = activities.isNotEmpty() && !isLoading,
+                    enabled = activities.isNotEmpty() && !isLoading && !isUpdatingActivity,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = when {
-                            isLoading -> stringResource(R.string.wizard_existing_activity_loading)
-                            else -> selectedActivity?.dropdownLabel
-                                ?: stringResource(R.string.wizard_existing_activity_dropdown_label)
-                        },
-                        textAlign = TextAlign.Center,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = when {
+                                isLoading -> stringResource(R.string.wizard_existing_activity_loading)
+                                else -> selectedActivity?.dropdownLabel
+                                    ?: stringResource(R.string.wizard_existing_activity_dropdown_label)
+                            },
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowDropDown,
+                            contentDescription = null,
+                        )
+                    }
                 }
 
                 DropdownMenu(
@@ -279,12 +304,24 @@ private fun ExistingActivityForm(
 
             OutlinedTextField(
                 value = title,
-                onValueChange = {},
+                onValueChange = onTitleChanged,
                 label = {
                     Text(text = stringResource(R.string.wizard_activity_title_label))
                 },
-                readOnly = true,
+                readOnly = !isTitleEditMode,
+                enabled = selectedActivity != null && !isUpdatingActivity,
                 singleLine = true,
+                trailingIcon = {
+                    IconButton(
+                        onClick = { isTitleEditMode = !isTitleEditMode },
+                        enabled = selectedActivity != null && !isUpdatingActivity,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = stringResource(R.string.wizard_edit_activity_title),
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
 

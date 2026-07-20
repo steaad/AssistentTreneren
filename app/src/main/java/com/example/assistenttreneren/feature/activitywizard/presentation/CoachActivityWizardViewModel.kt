@@ -106,9 +106,7 @@ class CoachActivityWizardViewModel @Inject constructor(
         when (currentState.activityInputMode) {
             CoachActivityInputMode.CreateNew -> createActivityAndNavigate(onNavigateNext)
             CoachActivityInputMode.Existing -> {
-                if (currentState.selectedActivityId != null) {
-                    onNavigateNext()
-                }
+                updateExistingActivityAndNavigate(onNavigateNext)
             }
 
             null -> Unit
@@ -247,6 +245,102 @@ class CoachActivityWizardViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun updateExistingActivityAndNavigate(
+        onNavigateNext: () -> Unit,
+    ) {
+        val currentState = uiState.value
+        val selectedActivity = currentState.selectedExistingActivity ?: return
+        val updatedTitle = currentState.title.trim()
+
+        if (currentState.isUpdatingExistingActivity) {
+            return
+        }
+
+        if (updatedTitle.isBlank()) {
+            _uiState.update {
+                it.copy(activityErrorMessage = "Aktiviteten må ha en tittel.")
+            }
+            return
+        }
+
+        if (updatedTitle == selectedActivity.title.orEmpty().trim()) {
+            onNavigateNext()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isUpdatingExistingActivity = true,
+                    activityErrorMessage = null,
+                )
+            }
+
+            if (isBackendBypassActive()) {
+                val updatedActivity = CoachActivity(
+                    activityId = selectedActivity.activityId,
+                    activityCategory = selectedActivity.activityCategory,
+                    title = updatedTitle,
+                    recordings = selectedActivity.recordings.map { recording ->
+                        Recording(
+                            id = recording.id,
+                            recordingType = recording.recordingType,
+                            filename = recording.filename,
+                            duration = recording.duration,
+                        )
+                    },
+                )
+                localCoachActivityRepository.saveActivity(updatedActivity)
+                updateExistingActivityStateAndNavigate(updatedActivity, onNavigateNext)
+                return@launch
+            }
+
+            when (
+                val result = updateCoachActivityUseCase(
+                    activityId = selectedActivity.activityId,
+                    activityCategory = null,
+                    title = updatedTitle,
+                )
+            ) {
+                is CoachActivityResult.Success -> {
+                    localCoachActivityRepository.saveActivity(result.data)
+                    updateExistingActivityStateAndNavigate(result.data, onNavigateNext)
+                }
+
+                is CoachActivityResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isUpdatingExistingActivity = false,
+                            activityErrorMessage = result.error.toUserMessage(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateExistingActivityStateAndNavigate(
+        activity: CoachActivity,
+        onNavigateNext: () -> Unit,
+    ) {
+        _uiState.update {
+            it.copy(
+                existingActivities = it.existingActivities.map { existingActivity ->
+                    if (existingActivity.activityId == activity.activityId) {
+                        activity.toExistingCoachActivityUiModel()
+                    } else {
+                        existingActivity
+                    }
+                },
+                title = activity.title.orEmpty(),
+                activityCategory = activity.activityCategory,
+                isUpdatingExistingActivity = false,
+                activityErrorMessage = null,
+            )
+        }
+        onNavigateNext()
     }
 
     private fun isBackendBypassActive(): Boolean =

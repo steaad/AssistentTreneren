@@ -10,6 +10,7 @@ data class CoachActivityWizardUiState(
     val selectedActivityId: String? = null,
     val isLoadingActivities: Boolean = false,
     val isCreatingActivity: Boolean = false,
+    val isUpdatingExistingActivity: Boolean = false,
     val activityErrorMessage: String? = null,
 ) {
     val totalSteps: Int = CoachActivityWizardStep.entries.size
@@ -24,7 +25,7 @@ data class CoachActivityWizardUiState(
         get() = existingActivities.firstOrNull { it.activityId == selectedExistingActivityId }
 
     val canContinueFromActivityType: Boolean
-        get() = !isLoadingActivities && !isCreatingActivity && when (activityInputMode) {
+        get() = !isLoadingActivities && !isCreatingActivity && !isUpdatingExistingActivity && when (activityInputMode) {
             CoachActivityInputMode.CreateNew -> title.isNotBlank() && activityCategory != null
             CoachActivityInputMode.Existing -> selectedActivityId != null && selectedExistingActivity != null
             null -> false

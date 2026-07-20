@@ -31,6 +31,8 @@
     <string name="wizard_existing_activity_no_recordings">Ingen opptak å vise.</string>
     <string name="wizard_existing_activity_recording_details">%1$s - %2$d sek</string>
     <string name="wizard_activity_creating_status">Oppretter aktivitet...</string>
+    <string name="wizard_activity_updating_status">Oppdaterer aktivitet...</string>
+    <string name="wizard_edit_activity_title">Rediger tittel</string>
     <string name="wizard_retry_button">Prøv igjen</string>
     <string name="activity_category_match">Kamp</string>
     <string name="activity_category_training">Trening</string>
