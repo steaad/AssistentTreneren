@@ -11,4 +11,5 @@ data class RecordingSession(
     val category: String,
     val subCategory: String,
     val createdAtMillis: Long,
+    val uploadStatus: RecordingUploadStatus = RecordingUploadStatus.AvailableForUpload,
 )

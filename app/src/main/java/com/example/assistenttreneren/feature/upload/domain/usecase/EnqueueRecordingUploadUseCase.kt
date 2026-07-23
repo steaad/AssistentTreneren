@@ -8,6 +8,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.example.assistenttreneren.feature.recording.domain.model.RecordingSession
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingUploadStatus
+import com.example.assistenttreneren.feature.recording.domain.repository.LocalRecordingRepository
 import com.example.assistenttreneren.feature.upload.data.worker.UploadRecordingWorker
 import com.example.assistenttreneren.feature.upload.domain.model.UploadJob
 import com.example.assistenttreneren.feature.upload.domain.model.UploadStatus
@@ -18,6 +20,7 @@ import javax.inject.Inject
 
 class EnqueueRecordingUploadUseCase @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val localRecordingRepository: LocalRecordingRepository,
     private val localUploadRepository: LocalUploadRepository,
 ) {
     suspend operator fun invoke(recording: RecordingSession): UploadJob {
@@ -25,6 +28,19 @@ class EnqueueRecordingUploadUseCase @Inject constructor(
         if (existingJob != null && existingJob.status.isActive) {
             return existingJob
         }
+
+        if (existingJob?.status == UploadStatus.Completed) {
+            localRecordingRepository.updateUploadStatus(
+                recordingId = recording.recordingId,
+                uploadStatus = RecordingUploadStatus.Uploaded,
+            )
+            return existingJob
+        }
+
+        localRecordingRepository.updateUploadStatus(
+            recordingId = recording.recordingId,
+            uploadStatus = RecordingUploadStatus.UploadInProgress,
+        )
 
         val now = System.currentTimeMillis()
         val uploadJob = UploadJob(

@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingSession
+import com.example.assistenttreneren.feature.recording.domain.model.RecordingUploadStatus
 import com.example.assistenttreneren.feature.recording.domain.repository.LocalRecordingRepository
 import com.example.assistenttreneren.feature.upload.data.dto.UploadRecordingMetadataDto
 import com.example.assistenttreneren.feature.upload.data.mapper.toUploadJob
@@ -17,11 +19,8 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.IOException
 import kotlinx.coroutines.delay
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
 @HiltWorker
@@ -42,10 +41,11 @@ class UploadRecordingWorker @AssistedInject constructor(
         val activityId = recording.activityId
             ?: return failUpload(uploadJob, "Opptaket mangler aktivitet.")
 
+        val shouldUploadMedia = uploadJob.requiresMediaUpload()
         val startedJob = uploadJob.copy(
-            status = UploadStatus.Uploading,
-            statusMessage = "Laster opp opptak.",
-            progressPercent = 0,
+            status = if (shouldUploadMedia) UploadStatus.Uploading else uploadJob.status,
+            statusMessage = if (shouldUploadMedia) "Laster opp opptak." else uploadJob.statusMessage,
+            progressPercent = if (shouldUploadMedia) 0 else uploadJob.progressPercent,
             attemptCount = uploadJob.attemptCount + 1,
             updatedAtMillis = System.currentTimeMillis(),
             lastError = null,
@@ -63,39 +63,34 @@ class UploadRecordingWorker @AssistedInject constructor(
                 mediaType = recording.mediaType.name,
                 mimeType = recording.mimeType,
             )
-            val metadataBody = json.encodeToString(metadata)
-                .toRequestBody(JSON_MEDIA_TYPE)
-            val mediaBody = ContentUriRequestBody(
-                contentResolver = appContext.contentResolver,
-                uri = Uri.parse(recording.contentUri),
-                mediaType = recording.mimeType.toMediaType(),
-            )
-            val mediaPart = MultipartBody.Part.createFormData(
-                name = MEDIA_PART_NAME,
-                filename = recording.displayName,
-                body = mediaBody,
-            )
-
-            val uploadResponse = uploadApi.uploadRecording(
+            val uploadWithBackendId = createUploadIfNeeded(
+                uploadJob = startedJob,
                 activityId = activityId,
-                media = mediaPart,
-                metadata = metadataBody,
+                metadata = metadata,
             )
-            val responseJob = startedJob.copy(
-                backendUploadId = uploadResponse.uploadId,
-                status = uploadResponse.status.toUploadStatusFromDto(),
-                statusMessage = uploadResponse.statusMessage,
-                progressPercent = if (uploadResponse.status == UploadStatus.Completed.name) {
-                    100
-                } else {
-                    startedJob.progressPercent
-                },
-                updatedAtMillis = System.currentTimeMillis(),
-                lastError = null,
-            )
-            localUploadRepository.saveUploadJob(responseJob)
-            pollUploadStatus(responseJob)
-            Result.success()
+            if (shouldUploadMedia) {
+                uploadMedia(uploadWithBackendId, recording)
+            }
+
+            val uploadToPoll = if (shouldUploadMedia) {
+                val mediaUploadedJob = uploadWithBackendId.copy(
+                    status = UploadStatus.Queued,
+                    statusMessage = "Media lastet opp. Venter på behandling.",
+                    progressPercent = 0,
+                    updatedAtMillis = System.currentTimeMillis(),
+                    lastError = null,
+                )
+                localUploadRepository.saveUploadJob(mediaUploadedJob)
+                mediaUploadedJob
+            } else {
+                uploadWithBackendId
+            }
+
+            if (pollUploadStatus(uploadToPoll)) {
+                Result.success()
+            } else {
+                Result.retry()
+            }
         } catch (exception: IOException) {
             failUpload(startedJob, "Nettverksfeil under opplasting.")
         } catch (exception: HttpException) {
@@ -105,13 +100,64 @@ class UploadRecordingWorker @AssistedInject constructor(
         }
     }
 
-    private suspend fun pollUploadStatus(uploadJob: UploadJob) {
-        val backendUploadId = uploadJob.backendUploadId ?: return
+    private suspend fun uploadMedia(
+        uploadJob: UploadJob,
+        recording: RecordingSession,
+    ) {
+        val mediaBody = ContentUriRequestBody(
+            contentResolver = appContext.contentResolver,
+            uri = Uri.parse(recording.contentUri),
+            mediaType = recording.mimeType.toMediaType(),
+        )
+        val mediaPart = MultipartBody.Part.createFormData(
+            name = MEDIA_PART_NAME,
+            filename = recording.displayName,
+            body = mediaBody,
+        )
+        uploadApi.uploadMedia(
+            uploadId = uploadJob.backendUploadId
+                ?: throw IllegalStateException("Uploaden mangler backend-ID."),
+            media = mediaPart,
+        )
+    }
+
+    private fun UploadJob.requiresMediaUpload(): Boolean =
+        backendUploadId.isNullOrBlank() || status == UploadStatus.Uploading
+
+    private suspend fun createUploadIfNeeded(
+        uploadJob: UploadJob,
+        activityId: String,
+        metadata: UploadRecordingMetadataDto,
+    ): UploadJob {
+        if (!uploadJob.backendUploadId.isNullOrBlank()) {
+            return uploadJob
+        }
+
+        val response = uploadApi.createUpload(
+            activityId = activityId,
+            metadata = metadata,
+        )
+        val backendUploadId = response.uploadId.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Backend returnerte en upload uten ID.")
+        val createdUploadJob = uploadJob.copy(
+            backendUploadId = backendUploadId,
+            status = response.status.toUploadStatusFromDto(),
+            statusMessage = response.statusMessage,
+            progressPercent = 0,
+            updatedAtMillis = System.currentTimeMillis(),
+            lastError = null,
+        )
+        localUploadRepository.saveUploadJob(createdUploadJob)
+        return createdUploadJob
+    }
+
+    private suspend fun pollUploadStatus(uploadJob: UploadJob): Boolean {
+        val backendUploadId = uploadJob.backendUploadId ?: return false
         var currentJob = uploadJob
 
         repeat(MAX_STATUS_POLLS) {
             if (currentJob.status.isTerminal) {
-                return
+                return true
             }
 
             delay(STATUS_POLL_DELAY_MILLIS)
@@ -123,7 +169,15 @@ class UploadRecordingWorker @AssistedInject constructor(
                 lastError = null,
             )
             localUploadRepository.saveUploadJob(currentJob)
+            if (currentJob.status == UploadStatus.Completed) {
+                localRecordingRepository.updateUploadStatus(
+                    recordingId = currentJob.recordingId,
+                    uploadStatus = RecordingUploadStatus.Uploaded,
+                )
+            }
         }
+
+        return currentJob.status.isTerminal
     }
 
     private suspend fun failUpload(
@@ -150,10 +204,5 @@ class UploadRecordingWorker @AssistedInject constructor(
         private const val MEDIA_PART_NAME = "media"
         private const val MAX_STATUS_POLLS = 12
         private const val STATUS_POLL_DELAY_MILLIS = 2_500L
-        private val JSON_MEDIA_TYPE = "application/json".toMediaType()
-        private val json = Json {
-            explicitNulls = false
-            ignoreUnknownKeys = true
-        }
     }
 }

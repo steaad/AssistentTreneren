@@ -29,7 +29,7 @@ object DatabaseModule {
             AssistentTrenerenDatabase::class.java,
             DATABASE_NAME,
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -61,6 +61,25 @@ object DatabaseModule {
             )
             db.execSQL(
                 "ALTER TABLE local_recordings ADD COLUMN mimeType TEXT NOT NULL DEFAULT 'audio/mp4'",
+            )
+        }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE local_recordings ADD COLUMN uploadStatus TEXT NOT NULL DEFAULT 'AvailableForUpload'",
+            )
+            db.execSQL(
+                """
+                UPDATE local_recordings
+                SET uploadStatus = 'Uploaded'
+                WHERE recordingId IN (
+                    SELECT recordingId
+                    FROM upload_jobs
+                    WHERE status = 'Completed'
+                )
+                """.trimIndent(),
             )
         }
     }

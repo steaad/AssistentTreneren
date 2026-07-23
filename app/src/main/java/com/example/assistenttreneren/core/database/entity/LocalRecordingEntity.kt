@@ -23,4 +23,5 @@ data class LocalRecordingEntity(
     val category: String,
     val subCategory: String,
     val createdAtMillis: Long,
+    val uploadStatus: String = "AvailableForUpload",
 )

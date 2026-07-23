@@ -60,7 +60,7 @@
     <string name="wizard_upload_title">Opplasting</string>
     <string name="wizard_upload_placeholder">Opplasting av media kommer her.</string>
     <string name="upload_recordings_title">Lokale opptak</string>
-    <string name="upload_no_recordings">Ingen lokale opptak for denne aktiviteten ennå.</string>
+    <string name="upload_no_recordings">Fant ingen tilgjengelige opptak for denne aktiviteten.</string>
     <string name="upload_recording_details">%1$s - %2$s - %3$s</string>
     <string name="upload_recording_active_job">Opplasting er allerede startet for dette opptaket.</string>
     <string name="upload_selected_recording_button">Last opp valgt opptak</string>

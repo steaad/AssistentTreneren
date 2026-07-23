@@ -15,7 +15,7 @@ Kilde i Android-prosjektet:
 Base URL i debug-build er foreløpig:
 
 ```text
-http://10.0.2.2:8080/
+http://localhost:8080/
 ```
 
 Android bruker Retrofit med Kotlin Serialization:
@@ -261,6 +261,14 @@ Aktivitet-feilkoder klienten mapper spesielt:
 
 Upload-API-et er definert i Android, men full UI/worker-flow er ikke ferdig implementert. Backend kan likevel bygges etter denne kontrakten.
 
+Kontrakten er utvidet for tidlig støtte for både lyd og video:
+
+- Nytt anbefalt multipart-filpartnavn er `media`.
+- Backend kan midlertidig akseptere gammelt partnavn `audio` som overgangsfallback.
+- `UploadRecordingMetadataDto` skal inneholde `mediaType` og `mimeType`.
+- `activityId` hentes fra path og er autoritativ kobling mellom aktivitet og opptak.
+- Androids lokale `contentUri` skal ikke sendes til, lagres av eller brukes på backend.
+
 Alle upload-kall krever bearer-token.
 
 ### POST `/api/activities/{activityId}/recordings`
@@ -291,11 +299,9 @@ Multipart-parts:
 
 | Part | Type | Påkrevd | Kommentar |
 | --- | --- | --- | --- |
-| `media` | file | ja | Anbefalt partnavn for både lyd og video. Ny Android-kode skal bruke dette. |
-| `audio` | file | nei | Midlertidig fallback som backend støtter for eldre klientkode. |
-| `metadata` | JSON string/body | ja | JSON som matcher `UploadRecordingMetadataDto`. |
-
-`activityId` hentes fra path og er autoritativ kobling mellom aktivitet og opptak. Android skal ikke sende `activityId` i metadata-bodyen.
+| `media` | file | ja | Nytt anbefalt partnavn for både lyd og video. |
+| `audio` | file | nei | Midlertidig bakoverkompatibel fallback for eldre Android-klienter. Skal fases ut når klienten bruker `media`. |
+| `metadata` | JSON request body | ja | Inneholder `UploadRecordingMetadataDto`. |
 
 Metadata DTO:
 
@@ -322,8 +328,8 @@ Metadata DTO:
 | `category` | string | ja | Aktivitetskategori. |
 | `subCategory` | string | ja | Underkategori. |
 | `createdAtMillis` | long | ja | Unix epoch millis. |
-| `mediaType` | string | ja | Må være eksakt `Audio` eller `Video`. |
-| `mimeType` | string | ja | Må starte med `audio/` når `mediaType = Audio`, og `video/` når `mediaType = Video`. |
+| `mediaType` | string | ja | Må være `Audio` eller `Video` med eksakt casing. |
+| `mimeType` | string | ja | Må matche `mediaType`: `audio/*` for `Audio`, `video/*` for `Video`. |
 
 Eksempel for lyd:
 
@@ -340,14 +346,7 @@ Eksempel for lyd:
 }
 ```
 
-Valideringsregler fra backend:
-
-- `recordingId`, `filename`, `category`, `subCategory`, `mediaType` og `mimeType` må være utfylt.
-- `durationMillis` og `createdAtMillis` må være `0` eller høyere.
-- `mediaType` må være nøyaktig `Audio` eller `Video`.
-- `mimeType` må starte med `audio/` når `mediaType = Audio`.
-- `mimeType` må starte med `video/` når `mediaType = Video`.
-- `contentUri` skal ikke sendes til backend.
+Merk: Lokal Android-metadata kan ha `activityId` og `contentUri`, men disse skal ikke brukes i upload-metadata til backend. `activityId` kommer fra path, og `contentUri` er kun lokal på Android-enheten.
 
 Response DTO: `UploadRecordingResponseDto`
 
@@ -417,52 +416,6 @@ Failed
 ```
 
 Statusverdiene må sendes med eksakt samme casing som enum-navnene over. Ukjente verdier mappes til `Failed` i Android.
-
-Nåværende backend-atferd i MVP:
-
-- Upload-respons returnerer `Queued`.
-- Lyd går videre via async prosessering og ender foreløpig i `Completed` med melding om at transkribering kommer senere.
-- Video ender i `Completed` når filen er lagret og validert.
-- `progressPercent` settes til `0`, `50` eller `100` i nåværende backendflyt.
-
-Backend støtter disse upload-feilene:
-
-| HTTP | `code` | Betydning |
-| --- | --- | --- |
-| `400` | `MISSING_MEDIA_FILE` | Multipart mangler både `media` og fallback-part `audio`. |
-| `400` | `INVALID_UPLOAD_METADATA` | Metadata mangler felt, har ugyldig JSON, feil `mediaType` eller mismatch mellom `mediaType` og `mimeType`. |
-| `401` | `UNAUTHORIZED` | Manglende, ugyldig eller utløpt access token. |
-| `404` | `ACTIVITY_NOT_FOUND` | Aktiviteten finnes ikke eller tilhører ikke innlogget trener. |
-| `404` | `UPLOAD_NOT_FOUND` | Upload finnes ikke eller tilhører ikke innlogget trener. |
-
-Feilresponsformat:
-
-```json
-{
-  "code": "INVALID_UPLOAD_METADATA",
-  "message": "mimeType må matche mediaType.",
-  "timestamp": "2026-06-18T19:24:00Z"
-}
-```
-
-Backend lagrer media på lokal disk under:
-
-```text
-{app.storage.media-root}/activities/{activityId}/recordings/{backendRecordingId}.{ext}
-```
-
-I databasen lagrer backend blant annet:
-
-- `activity_id`
-- `client_recording_id`
-- `media_type`
-- `mime_type`
-- `original_file_name`
-- `storage_path`
-- `file_size_bytes`
-- `duration_millis`
-
-Android skal bruke API-responser og ikke anta noe om serverens lokale filsti.
 
 ## Analyse
 
@@ -556,6 +509,20 @@ Failed
 
 Statusverdiene må sendes med eksakt samme casing som enum-navnene over. Ukjente verdier mappes til `Failed` i Android.
 
+## Anbefalt totrinns opplasting og transkripsjon
+
+### POST `/api/activities/{activityId}/uploads`
+
+Oppretter en upload før mediafilen sendes. Request body er samme `UploadRecordingMetadataDto` som brukes ved opplasting. Responsen inneholder `uploadId` og status `Uploading`.
+
+### POST `/api/uploads/{uploadId}/media`
+
+Laster opp mediafilen med multipart-feltet `media` til en tidligere opprettet upload. Når filen er lagret, går lydopptak fra `Queued` til `Transcribing` og deretter `Completed` eller `Failed`. Video transkriberes ikke.
+
+`GET /api/uploads/{uploadId}/status` brukes for polling gjennom hele flyten. Den transkriberte teksten lagres internt per recording og eksponeres ikke i denne fasen.
+
+Den eksisterende `POST /api/activities/{activityId}/recordings` beholdes midlertidig for kompatibilitet, men nye Android-klienter skal bruke totrinns-flyten.
+
 ## Kategorier og underkategorier brukt i opptak
 
 Dette er ikke en egen backend-DTO ennå, men verdiene brukes i metadata og UI.
@@ -573,8 +540,8 @@ Underkategorier:
 
 | Aktivitet | Underkategorier |
 | --- | --- |
-| `Kamp` | `1.omgang`, `Pause`, `2.omgang` |
-| `Trening` | `Spill`, `Øvelse` |
+| `Kamp` | `1.omgang`, `Pause`, `2.omgang`, `Evaluering` |
+| `Trening` | `Spill`, `Øvelse`, `Evaluering` |
 | `Møte` | `Spillermøte`, `Trenermøte` |
 | `Speiding` | `Enkeltspiller`, `Motstander` |
 
@@ -599,4 +566,5 @@ Anbefalt backend-praksis:
 ## Kjente avklaringer før backend låses
 
 - `RecordingDto.duration` fra aktivitet-respons bør avklares: klienten viser feltet som sekunder i én tekst, mens lokal opptaksmodell bruker `durationMillis`.
+- Upload multipart-part er utvidet til `media`, med midlertidig backend-fallback for gammelt partnavn `audio`.
 - `CreateCoachActivityRequestDto` er tom i klienten. Backend kan enten opprette draft-aktivitet med tom body eller kontrakten kan senere forenkles til at tittel/kategori sendes allerede ved create.

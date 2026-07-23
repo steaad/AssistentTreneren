@@ -1,9 +1,10 @@
 package com.example.assistenttreneren.feature.upload.data.remote
 
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
+import com.example.assistenttreneren.feature.upload.data.dto.UploadRecordingMetadataDto
 import com.example.assistenttreneren.feature.upload.data.dto.UploadRecordingResponseDto
 import com.example.assistenttreneren.feature.upload.data.dto.UploadStatusResponseDto
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -11,13 +12,18 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface UploadApi {
-    @Multipart
-    @POST("api/activities/{activityId}/recordings")
-    suspend fun uploadRecording(
+    @POST("api/activities/{activityId}/uploads")
+    suspend fun createUpload(
         @Path("activityId") activityId: String,
-        @Part media: MultipartBody.Part,
-        @Part("metadata") metadata: RequestBody,
+        @Body metadata: UploadRecordingMetadataDto,
     ): UploadRecordingResponseDto
+
+    @Multipart
+    @POST("api/uploads/{uploadId}/media")
+    suspend fun uploadMedia(
+        @Path("uploadId") uploadId: String,
+        @Part media: MultipartBody.Part,
+    )
 
     @GET("api/uploads/{uploadId}/status")
     suspend fun getUploadStatus(

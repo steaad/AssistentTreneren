@@ -38,12 +38,14 @@ class UploadStepViewModel @Inject constructor(
         activityCollectionJob?.cancel()
         activityCollectionJob = viewModelScope.launch {
             combine(
+                localRecordingRepository.observeAvailableRecordingsForActivity(activityId),
                 localRecordingRepository.observeRecordingsForActivity(activityId),
                 localUploadRepository.observeUploadJobsForActivity(activityId),
-            ) { recordings, uploadJobs ->
+            ) { availableRecordings, recordings, uploadJobs ->
                 buildUiState(
                     activityId = activityId,
                     recordings = recordings,
+                    availableRecordings = availableRecordings,
                     uploadJobs = uploadJobs,
                     selectedRecordingId = uiState.value.selectedRecordingId,
                     errorMessage = uiState.value.errorMessage,
@@ -88,7 +90,11 @@ class UploadStepViewModel @Inject constructor(
 
             localUploadRepository.saveUploadJob(
                 uploadJob.copy(
-                    status = UploadStatus.Queued,
+                    status = if (uploadJob.backendUploadId == null) {
+                        UploadStatus.Queued
+                    } else {
+                        UploadStatus.Uploading
+                    },
                     statusMessage = "Opptaket er satt i kø.",
                     progressPercent = uploadJob.progressPercent ?: 0,
                     updatedAtMillis = System.currentTimeMillis(),
@@ -103,6 +109,7 @@ class UploadStepViewModel @Inject constructor(
     private fun buildUiState(
         activityId: String,
         recordings: List<RecordingSession>,
+        availableRecordings: List<RecordingSession>,
         uploadJobs: List<UploadJob>,
         selectedRecordingId: String?,
         errorMessage: String?,
@@ -110,7 +117,7 @@ class UploadStepViewModel @Inject constructor(
         val jobsByRecordingId = uploadJobs.groupBy { it.recordingId }
         val recordingNames = recordings.associate { it.recordingId to it.displayName }
         val recordingMediaTypes = recordings.associate { it.recordingId to it.mediaType }
-        val recordingUiModels = recordings.map { recording ->
+        val recordingUiModels = availableRecordings.map { recording ->
             UploadRecordingUiModel(
                 recordingId = recording.recordingId,
                 displayName = recording.displayName,
