@@ -8,6 +8,8 @@ import com.example.assistenttreneren.feature.recording.data.repository.LocalReco
 import com.example.assistenttreneren.feature.recording.domain.repository.LocalRecordingRepository
 import com.example.assistenttreneren.feature.upload.data.repository.LocalUploadRepositoryImpl
 import com.example.assistenttreneren.feature.upload.domain.repository.LocalUploadRepository
+import com.example.assistenttreneren.feature.transcription.data.repository.TranscriptionReviewRepositoryImpl
+import com.example.assistenttreneren.feature.transcription.domain.repository.TranscriptionReviewRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -40,4 +42,10 @@ abstract class LocalRepositoryModule {
     abstract fun bindLocalAnalysisRepository(
         repository: LocalAnalysisRepositoryImpl,
     ): LocalAnalysisRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTranscriptionReviewRepository(
+        repository: TranscriptionReviewRepositoryImpl,
+    ): TranscriptionReviewRepository
 }

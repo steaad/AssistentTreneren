@@ -6,6 +6,7 @@ import com.example.assistenttreneren.core.network.AuthInterceptor
 import com.example.assistenttreneren.feature.activitywizard.data.remote.CoachActivityApi
 import com.example.assistenttreneren.feature.analysis.data.remote.AnalysisApi
 import com.example.assistenttreneren.feature.login.data.remote.AuthApi
+import com.example.assistenttreneren.feature.transcription.data.remote.TranscriptionReviewApi
 import com.example.assistenttreneren.feature.upload.data.remote.UploadApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -100,6 +101,13 @@ object NetworkModule {
         @Named(AUTHENTICATED_RETROFIT)
         retrofit: Retrofit,
     ): AnalysisApi = retrofit.create(AnalysisApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTranscriptionReviewApi(
+        @Named(AUTHENTICATED_RETROFIT)
+        retrofit: Retrofit,
+    ): TranscriptionReviewApi = retrofit.create(TranscriptionReviewApi::class.java)
 
     private fun buildRetrofit(
         okHttpClient: OkHttpClient,

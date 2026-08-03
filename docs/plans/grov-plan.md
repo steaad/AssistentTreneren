@@ -11,6 +11,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 
 ## Status
 
+
 - [x] Plan dokumentert
 - [x] Login og token refresh planlagt
 - [x] Auth refresh API-kontrakt definert
@@ -23,6 +24,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Opptak metadata lagres lokalt
 - [x] Opplasting og statuspolling implementert
 - [x] Oppsummering implementert
+- [x] Transkripsjonsgjennomgang i oppsummeringssteget implementert
 - [ ] Historikk og Analyse MVP implementert
 - [ ] Full offline opprettelse av ny aktivitet planlagt for senere fase
 - [ ] Tester lagt til
@@ -73,8 +75,9 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
   - [x] `GET /api/activities`
   - [x] `POST /api/activities`
   - [x] `PATCH /api/activities/{activityId}`
-- [x] Dokumenter minimumsendepunkt for opplasting:
-  - [x] `POST /api/activities/{activityId}/recordings`
+- [x] Dokumenter totrinns opplastingsflyt:
+  - [x] `POST /api/activities/{activityId}/uploads`
+  - [x] `POST /api/uploads/{uploadId}/media`
 - [x] Dokumenter minimumsendepunkt for upload-status:
   - [x] `GET /api/uploads/{uploadId}/status`
 - [x] Dokumenter minimumsendepunkter for analyse:
@@ -85,6 +88,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Opprett DTO-er for analyse-liste og analyse-detalj.
 - [x] Opprett Retrofit API-interface for upload.
 - [x] Opprett Retrofit API-interface for analyse.
+- [x] Opprett Retrofit API-interface for transkripsjonsgjennomgang og observasjonshandlinger.
 - [x] Hold DTO-er separert fra domain models.
 
 ## 4. Trener aktivitet-wizard
@@ -164,7 +168,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Gi bruker retry-mulighet ved feil.
 - [x] Ikke blokker bruker fra å starte flere opplastinger.
 
-## 7. Oppsummering, Historikk og Analyse
+## 7. Oppsummering, transkripsjon, Historikk og Analyse
 
 - [x] Bygg ferdig steg 4 Oppsummering.
 - [x] Vis aktivitetstittel.
@@ -172,6 +176,19 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Vis opptak knyttet til aktiviteten.
 - [x] Vis upload-statuser.
 - [x] Gi tydelig avslutning tilbake til Home.
+- [x] Gjør seksjonene Opptak og Opplasting utvidbare, lukket som standard.
+- [x] Legg til åpen Transkripsjon-seksjon i steg 4.
+- [x] Hent ferdige transkripsjoner med `GET /api/activities/{activityId}/transcription-review`.
+- [x] Vis transkripsjonstekst, automatiske observasjoner og ventende parseravvik.
+- [x] Vis transkripsjonsstatus og antall ventende avvik i aktivitetskortet.
+- [x] Støtt redigering og sletting av automatiske observasjoner.
+- [x] Støtt løsning og avvisning av parseravvik.
+- [x] Oppdater review-data etter vellykket transkripsjonshandling.
+- [x] Tillat at brukeren fullfører wizarden med ventende parseravvik.
+- [ ] Legg til unit tests for transkripsjons-DTO-er, mapper og validering.
+- [ ] Legg til ViewModel-tester med fakes for review-innhenting og transkripsjonshandlinger.
+- [ ] Legg til Compose/instrumented tester for utvidbare seksjoner og transkripsjonsdialoger.
+- [ ] Manuelt verifiser transkripsjonsflyt, observasjonsendringer og avvikshåndtering mot backend.
 - [ ] Lag enkel Historikk-skjerm.
 - [ ] Vis aktiviteter fra lokal cache og backend.
 - [ ] Lag enkel Analyse-liste.

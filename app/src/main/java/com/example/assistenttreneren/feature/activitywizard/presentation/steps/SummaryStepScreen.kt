@@ -2,26 +2,28 @@ package com.example.assistenttreneren.feature.activitywizard.presentation.steps
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.Videocam
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,331 +31,95 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardStep
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardUiState
-import com.example.assistenttreneren.feature.activitywizard.presentation.SummaryRecordingUiModel
 import com.example.assistenttreneren.feature.activitywizard.presentation.SummaryStepUiState
 import com.example.assistenttreneren.feature.activitywizard.presentation.SummaryStepViewModel
-import com.example.assistenttreneren.feature.activitywizard.presentation.SummaryUploadJobUiModel
 import com.example.assistenttreneren.feature.activitywizard.presentation.components.CoachActivityWizardScaffold
-import com.example.assistenttreneren.feature.recording.domain.model.RecordingMediaType
-import com.example.assistenttreneren.feature.upload.domain.model.UploadStatus
+import com.example.assistenttreneren.feature.transcription.domain.model.TranscriptionEvent
+import com.example.assistenttreneren.feature.transcription.domain.model.TranscriptionEventInput
+import com.example.assistenttreneren.feature.transcription.domain.model.TranscriptionEventIssue
 
 @Composable
-fun SummaryStepScreen(
-    uiState: CoachActivityWizardUiState,
-    onStepOpened: (CoachActivityWizardStep) -> Unit,
-    onNavigateBack: () -> Unit,
-    onFinish: () -> Unit,
-    summaryStepViewModel: SummaryStepViewModel = hiltViewModel(),
-) {
-    val summaryUiState by summaryStepViewModel.uiState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        onStepOpened(CoachActivityWizardStep.Summary)
-    }
-
-    LaunchedEffect(uiState.selectedActivityId) {
-        summaryStepViewModel.loadActivity(uiState.selectedActivityId)
-    }
-
-    CoachActivityWizardScaffold(
-        title = stringResource(R.string.wizard_summary_title),
-        uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onNavigateNext = onFinish,
-        nextButtonText = stringResource(R.string.wizard_finish_button),
-    ) {
-        SummaryStepContent(
-            wizardUiState = uiState,
-            summaryUiState = summaryUiState,
-        )
+fun SummaryStepScreen(uiState: CoachActivityWizardUiState, onStepOpened: (CoachActivityWizardStep) -> Unit, onNavigateBack: () -> Unit, onFinish: () -> Unit, summaryStepViewModel: SummaryStepViewModel = hiltViewModel()) {
+    val summary by summaryStepViewModel.uiState.collectAsState()
+    LaunchedEffect(Unit) { onStepOpened(CoachActivityWizardStep.Summary) }
+    LaunchedEffect(uiState.selectedActivityId) { summaryStepViewModel.loadActivity(uiState.selectedActivityId) }
+    CoachActivityWizardScaffold(title = stringResource(R.string.wizard_summary_title), uiState = uiState, onNavigateBack = onNavigateBack, onNavigateNext = onFinish, nextButtonText = stringResource(R.string.wizard_finish_button)) {
+        SummaryContent(uiState, summary, summaryStepViewModel)
     }
 }
 
 @Composable
-private fun SummaryStepContent(
-    wizardUiState: CoachActivityWizardUiState,
-    summaryUiState: SummaryStepUiState,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        ActivitySummaryCard(
-            title = wizardUiState.title.ifBlank {
-                stringResource(R.string.summary_missing_title)
-            },
-            category = wizardUiState.activityCategory
-                ?: stringResource(R.string.summary_missing_category),
-            recordingCount = summaryUiState.recordings.size,
-            audioCount = summaryUiState.audioRecordingCount,
-            videoCount = summaryUiState.videoRecordingCount,
-            completedUploadCount = summaryUiState.completedUploadCount,
-            failedUploadCount = summaryUiState.failedUploadCount,
-        )
-
-        RecordingsSummarySection(recordings = summaryUiState.recordings)
-
-        UploadSummarySection(uploadJobs = summaryUiState.uploadJobs)
-
-        Text(
-            text = stringResource(R.string.summary_finish_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun SummaryContent(wizard: CoachActivityWizardUiState, state: SummaryStepUiState, viewModel: SummaryStepViewModel) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(wizard.title.ifBlank { stringResource(R.string.summary_missing_title) }, style = MaterialTheme.typography.titleMedium)
+            Text(wizard.activityCategory ?: stringResource(R.string.summary_missing_category))
+            Text("${state.recordings.size} opptak: ${state.audioRecordingCount} lyd, ${state.videoRecordingCount} video")
+            Text("${state.completedUploadCount} fullført, ${state.failedUploadCount} feilet")
+            Text("Transkripsjon: ${state.processingAudioCount} under behandling, ${state.readyTranscriptionCount} klare, ${state.failedAudioCount} feilet, ${state.pendingIssueCount} trenger gjennomgang")
+        } }
+        ExpandableSection("Opptak", false) { state.recordings.forEach { Text("${it.displayName} · ${it.subCategory}", Modifier.padding(vertical = 4.dp)) } }
+        ExpandableSection("Opplasting", false) { state.uploadJobs.forEach { Text("${it.recordingDisplayName}: ${it.statusMessage ?: it.status.name}", Modifier.padding(vertical = 4.dp)) } }
+        TranscriptionSection(state, viewModel)
+        Text(stringResource(R.string.summary_finish_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun ActivitySummaryCard(
-    title: String,
-    category: String,
-    recordingCount: Int,
-    audioCount: Int,
-    videoCount: Int,
-    completedUploadCount: Int,
-    failedUploadCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedCard(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = category,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(
-                    R.string.summary_activity_counts,
-                    recordingCount,
-                    audioCount,
-                    videoCount,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = stringResource(
-                    R.string.summary_upload_counts,
-                    completedUploadCount,
-                    failedUploadCount,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+private fun ExpandableSection(title: String, initiallyExpanded: Boolean, content: @Composable () -> Unit) {
+    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            IconButton({ expanded = !expanded }) { Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null) }
         }
-    }
+        if (expanded) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
+    } }
 }
 
 @Composable
-private fun RecordingsSummarySection(
-    recordings: List<SummaryRecordingUiModel>,
-    modifier: Modifier = Modifier,
-) {
-    SummarySection(
-        title = stringResource(R.string.summary_recordings_title),
-        emptyText = stringResource(R.string.summary_no_recordings),
-        isEmpty = recordings.isEmpty(),
-        modifier = modifier,
-    ) {
-        recordings.forEach { recording ->
-            SummaryRecordingItem(recording = recording)
-        }
-    }
-}
-
-@Composable
-private fun UploadSummarySection(
-    uploadJobs: List<SummaryUploadJobUiModel>,
-    modifier: Modifier = Modifier,
-) {
-    SummarySection(
-        title = stringResource(R.string.summary_uploads_title),
-        emptyText = stringResource(R.string.summary_no_uploads),
-        isEmpty = uploadJobs.isEmpty(),
-        modifier = modifier,
-    ) {
-        uploadJobs.forEach { uploadJob ->
-            SummaryUploadItem(uploadJob = uploadJob)
-        }
-    }
-}
-
-@Composable
-private fun SummarySection(
-    title: String,
-    emptyText: String,
-    isEmpty: Boolean,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-        )
-
-        if (isEmpty) {
-            Text(
-                text = emptyText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun SummaryRecordingItem(
-    recording: SummaryRecordingUiModel,
-    modifier: Modifier = Modifier,
-) {
-    SummaryItemCard(modifier = modifier) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = recording.displayName,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                text = stringResource(
-                    R.string.summary_recording_details,
-                    recording.mediaType.asDisplayText(),
-                    recording.subCategory,
-                    formatDuration(recording.durationMillis),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        RecordingTypeIcon(mediaType = recording.mediaType)
-    }
-}
-
-@Composable
-private fun SummaryUploadItem(
-    uploadJob: SummaryUploadJobUiModel,
-    modifier: Modifier = Modifier,
-) {
-    SummaryItemCard(modifier = modifier) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                text = uploadJob.recordingDisplayName,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                text = uploadJob.status.asDisplayText(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = uploadJob.status.asStatusColor(),
-            )
-            uploadJob.statusMessage?.let { statusMessage ->
-                Text(
-                    text = statusMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            uploadJob.progressPercent?.let { progress ->
-                LinearProgressIndicator(
-                    progress = { progress.coerceIn(0, 100) / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+private fun TranscriptionSection(state: SummaryStepUiState, viewModel: SummaryStepViewModel) {
+    ExpandableSection("Transkripsjon", true) {
+        when {
+            state.isLoadingTranscriptionReview -> Text("Henter transkripsjoner...")
+            state.transcriptionErrorMessage != null -> { Text(state.transcriptionErrorMessage, color = MaterialTheme.colorScheme.error); OutlinedButton(viewModel::refreshTranscriptionReview) { Text("Prøv igjen") } }
+            state.transcriptionReview == null || state.transcriptionReview.recordings.isEmpty() -> Text("Ingen ferdige transkripsjoner ennå.")
+            else -> state.transcriptionReview.recordings.forEach { recording ->
+                OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(recording.recordingId, style = MaterialTheme.typography.titleSmall)
+                    Text(recording.transcriptText, style = MaterialTheme.typography.bodySmall)
+                    Text("Observasjoner", style = MaterialTheme.typography.titleSmall)
+                    recording.events.forEach { event -> EventItem(event, state.isSubmittingTranscriptionAction, viewModel) }
+                    Text("Trenger gjennomgang (${recording.issues.size})", style = MaterialTheme.typography.titleSmall)
+                    recording.issues.forEach { issue -> IssueItem(issue, state.isSubmittingTranscriptionAction, viewModel) }
+                } }
             }
         }
-
-        RecordingTypeIcon(mediaType = uploadJob.mediaType)
     }
 }
 
 @Composable
-private fun SummaryItemCard(
-    modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit,
-) {
-    OutlinedCard(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
-    }
+private fun EventItem(event: TranscriptionEvent, busy: Boolean, viewModel: SummaryStepViewModel) {
+    var edit by rememberSaveable(event.eventId) { mutableStateOf(false) }
+    OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(8.dp)) {
+        Text(event.text); Text("${event.startMillis}–${event.endMillis} ms${if (event.manuallyEdited) " · redigert" else ""}", style = MaterialTheme.typography.bodySmall)
+        Row { OutlinedButton({ edit = true }, enabled = !busy) { Text("Rediger") }; OutlinedButton({ viewModel.deleteEvent(event.eventId) }, enabled = !busy) { Text("Slett") } }
+    } }
+    if (edit) EventInputDialog("Rediger observasjon", event.text, event.startMillis, event.endMillis, busy, { edit = false }) { viewModel.updateEvent(event.eventId, it); edit = false }
 }
 
 @Composable
-private fun RecordingTypeIcon(
-    mediaType: RecordingMediaType,
-    modifier: Modifier = Modifier,
-) {
-    Icon(
-        imageVector = when (mediaType) {
-            RecordingMediaType.Audio -> Icons.Outlined.Mic
-            RecordingMediaType.Video -> Icons.Outlined.Videocam
-        },
-        contentDescription = mediaType.asDisplayText(),
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = modifier.size(28.dp),
-    )
+private fun IssueItem(issue: TranscriptionEventIssue, busy: Boolean, viewModel: SummaryStepViewModel) {
+    var resolve by rememberSaveable(issue.issueId) { mutableStateOf(false) }
+    OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(8.dp)) {
+        Text(issue.issueType, style = MaterialTheme.typography.titleSmall); issue.candidateText?.let { Text(it) }; issue.contextBefore?.let { Text("Før: $it", style = MaterialTheme.typography.bodySmall) }; issue.contextAfter?.let { Text("Etter: $it", style = MaterialTheme.typography.bodySmall) }
+        Row { OutlinedButton({ resolve = true }, enabled = !busy) { Text("Lagre korrigert observasjon") }; OutlinedButton({ viewModel.dismissIssue(issue.issueId) }, enabled = !busy) { Text("Avvis") } }
+    } }
+    if (resolve) EventInputDialog("Løs avvik", issue.candidateText.orEmpty(), issue.startMillis ?: 0, issue.endMillis ?: 0, busy, { resolve = false }) { viewModel.resolveIssue(issue.issueId, it); resolve = false }
 }
 
 @Composable
-private fun UploadStatus.asStatusColor() =
-    when (this) {
-        UploadStatus.Completed -> MaterialTheme.colorScheme.primary
-        UploadStatus.Failed -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-private fun RecordingMediaType.asDisplayText(): String =
-    when (this) {
-        RecordingMediaType.Audio -> "Lyd"
-        RecordingMediaType.Video -> "Video"
-    }
-
-private fun UploadStatus.asDisplayText(): String =
-    when (this) {
-        UploadStatus.Queued -> "I kø"
-        UploadStatus.Uploading -> "Laster opp"
-        UploadStatus.ProcessingAudio -> "Behandler lyd"
-        UploadStatus.Transcribing -> "Transkriberer"
-        UploadStatus.Completed -> "Fullført"
-        UploadStatus.Failed -> "Feilet"
-    }
-
-private fun formatDuration(durationMillis: Long): String {
-    val totalSeconds = durationMillis / 1_000L
-    val minutes = totalSeconds / 60L
-    val seconds = totalSeconds % 60L
-    return "%02d:%02d".format(minutes, seconds)
+private fun EventInputDialog(title: String, initialText: String, initialStart: Long, initialEnd: Long, busy: Boolean, onDismiss: () -> Unit, onConfirm: (TranscriptionEventInput) -> Unit) {
+    var text by rememberSaveable { mutableStateOf(initialText) }; var start by rememberSaveable { mutableStateOf(initialStart.toString()) }; var end by rememberSaveable { mutableStateOf(initialEnd.toString()) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(text, { text = it }, label = { Text("Tekst") }); OutlinedTextField(start, { start = it }, label = { Text("Start (ms)") }); OutlinedTextField(end, { end = it }, label = { Text("Slutt (ms)") }) } }, confirmButton = { Button(onClick = { val s = start.toLongOrNull(); val e = end.toLongOrNull(); if (s != null && e != null) onConfirm(TranscriptionEventInput(text, s, e)) }, enabled = !busy && text.isNotBlank() && start.toLongOrNull() != null && end.toLongOrNull() != null) { Text("Lagre") } }, dismissButton = { OutlinedButton(onClick = onDismiss, enabled = !busy) { Text("Avbryt") } })
 }
