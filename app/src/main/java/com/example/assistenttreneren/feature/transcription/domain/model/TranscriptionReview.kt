@@ -7,6 +7,11 @@ data class TranscriptionReview(
 
 data class TranscriptionRecording(
     val recordingId: String,
+    val backendRecordingId: String,
+    val filename: String,
+    val mediaType: String,
+    val category: String,
+    val subCategory: String,
     val transcriptionId: String,
     val transcriptText: String,
     val events: List<TranscriptionEvent>,

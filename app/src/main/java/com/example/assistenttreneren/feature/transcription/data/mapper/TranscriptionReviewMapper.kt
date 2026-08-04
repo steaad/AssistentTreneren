@@ -15,6 +15,11 @@ fun TranscriptionReviewDto.toTranscriptionReview(): TranscriptionReview = Transc
     recordings = recordings.map { recording ->
         TranscriptionRecording(
             recordingId = recording.recordingId,
+            backendRecordingId = recording.backendRecordingId,
+            filename = recording.filename,
+            mediaType = recording.mediaType,
+            category = recording.category,
+            subCategory = recording.subCategory,
             transcriptionId = recording.transcriptionId,
             transcriptText = recording.transcriptText,
             events = recording.events.map { it.toTranscriptionEvent() },

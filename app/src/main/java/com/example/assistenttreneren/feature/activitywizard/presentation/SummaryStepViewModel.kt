@@ -27,10 +27,10 @@ class SummaryStepViewModel @Inject constructor(
     private val localRecordingRepository: LocalRecordingRepository,
     private val localUploadRepository: LocalUploadRepository,
     private val getReview: GetTranscriptionReviewUseCase,
-    private val resolveIssue: ResolveTranscriptionIssueUseCase,
-    private val dismissIssue: DismissTranscriptionIssueUseCase,
-    private val updateEvent: UpdateTranscriptionEventUseCase,
-    private val deleteEvent: DeleteTranscriptionEventUseCase,
+    private val resolveTranscriptionIssueUseCase: ResolveTranscriptionIssueUseCase,
+    private val dismissTranscriptionIssueUseCase: DismissTranscriptionIssueUseCase,
+    private val updateTranscriptionEventUseCase: UpdateTranscriptionEventUseCase,
+    private val deleteTranscriptionEventUseCase: DeleteTranscriptionEventUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SummaryStepUiState())
     val uiState = _uiState.asStateFlow()
@@ -66,10 +66,10 @@ class SummaryStepViewModel @Inject constructor(
         }
     }
 
-    fun resolveIssue(issueId: String, input: TranscriptionEventInput) = submit { resolveIssue(issueId, input) }
-    fun dismissIssue(issueId: String) = submit { dismissIssue(issueId) }
-    fun updateEvent(eventId: String, input: TranscriptionEventInput) = submit { updateEvent(eventId, input) }
-    fun deleteEvent(eventId: String) = submit { deleteEvent(eventId) }
+    fun resolveIssue(issueId: String, input: TranscriptionEventInput) = submit { resolveTranscriptionIssueUseCase(issueId, input) }
+    fun dismissIssue(issueId: String) = submit { dismissTranscriptionIssueUseCase(issueId) }
+    fun updateEvent(eventId: String, input: TranscriptionEventInput) = submit { updateTranscriptionEventUseCase(eventId, input) }
+    fun deleteEvent(eventId: String) = submit { deleteTranscriptionEventUseCase(eventId) }
 
     private fun submit(action: suspend () -> TranscriptionReviewResult<Unit>) = viewModelScope.launch {
         _uiState.update { it.copy(isSubmittingTranscriptionAction = true, transcriptionErrorMessage = null) }

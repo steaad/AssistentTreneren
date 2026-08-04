@@ -11,6 +11,11 @@ data class TranscriptionReviewDto(
 @Serializable
 data class TranscriptionRecordingDto(
     val recordingId: String,
+    val backendRecordingId: String,
+    val filename: String,
+    val mediaType: String,
+    val category: String,
+    val subCategory: String,
     val transcriptionId: String,
     val transcriptText: String = "",
     val events: List<TranscriptionEventDto> = emptyList(),
