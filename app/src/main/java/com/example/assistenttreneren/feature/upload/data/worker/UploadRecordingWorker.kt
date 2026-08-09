@@ -62,6 +62,8 @@ class UploadRecordingWorker @AssistedInject constructor(
                 createdAtMillis = recording.createdAtMillis,
                 mediaType = recording.mediaType.name,
                 mimeType = recording.mimeType,
+                matchPeriod = recording.matchPeriod,
+                matchClockStartMillis = recording.matchClockStartMillis,
             )
             val uploadWithBackendId = createUploadIfNeeded(
                 uploadJob = startedJob,

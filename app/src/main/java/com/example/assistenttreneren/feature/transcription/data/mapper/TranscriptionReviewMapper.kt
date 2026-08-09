@@ -20,6 +20,8 @@ fun TranscriptionReviewDto.toTranscriptionReview(): TranscriptionReview = Transc
             mediaType = recording.mediaType,
             category = recording.category,
             subCategory = recording.subCategory,
+            matchPeriod = recording.matchPeriod,
+            matchClockStartMillis = recording.matchClockStartMillis,
             transcriptionId = recording.transcriptionId,
             transcriptText = recording.transcriptText,
             events = recording.events.map { it.toTranscriptionEvent() },
@@ -30,7 +32,7 @@ fun TranscriptionReviewDto.toTranscriptionReview(): TranscriptionReview = Transc
 
 fun TranscriptionEventInput.toRequestDto() = TranscriptionEventRequestDto(text, startMillis, endMillis)
 
-private fun TranscriptionEventDto.toTranscriptionEvent() = TranscriptionEvent(eventId, text, startMillis, endMillis, manuallyEdited)
+private fun TranscriptionEventDto.toTranscriptionEvent() = TranscriptionEvent(eventId, text, startMillis, endMillis, manuallyEdited, matchPeriod, matchStartMillis, matchEndMillis)
 
 private fun TranscriptionEventIssueDto.toTranscriptionEventIssue() = TranscriptionEventIssue(
     issueId, issueType, candidateText, contextBefore, contextAfter, startMillis, endMillis,

@@ -17,6 +17,8 @@ fun LocalRecordingEntity.toRecordingSession(): RecordingSession =
         category = category,
         subCategory = subCategory,
         createdAtMillis = createdAtMillis,
+        matchPeriod = matchPeriod,
+        matchClockStartMillis = matchClockStartMillis,
         uploadStatus = uploadStatus.toRecordingUploadStatus(),
     )
 
@@ -32,6 +34,8 @@ fun RecordingSession.toLocalRecordingEntity(): LocalRecordingEntity =
         category = category,
         subCategory = subCategory,
         createdAtMillis = createdAtMillis,
+        matchPeriod = matchPeriod,
+        matchClockStartMillis = matchClockStartMillis,
         uploadStatus = uploadStatus.name,
     )
 

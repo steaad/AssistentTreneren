@@ -12,4 +12,6 @@ data class UploadRecordingMetadataDto(
     val createdAtMillis: Long,
     val mediaType: String,
     val mimeType: String,
+    val matchPeriod: String? = null,
+    val matchClockStartMillis: Long? = null,
 )

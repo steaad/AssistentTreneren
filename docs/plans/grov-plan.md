@@ -27,7 +27,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Transkripsjonsgjennomgang i oppsummeringssteget implementert
 - [ ] Historikk og Analyse MVP implementert
 - [ ] Full offline opprettelse av ny aktivitet planlagt for senere fase
-- [ ] Tester lagt til
+- [x] Tester lagt til
 - [ ] Manuell verifikasjon fullført
 
 ## 1. Login og token refresh
@@ -185,7 +185,8 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Støtt løsning og avvisning av parseravvik.
 - [x] Oppdater review-data etter vellykket transkripsjonshandling.
 - [x] Tillat at brukeren fullfører wizarden med ventende parseravvik.
-- [ ] Legg til unit tests for transkripsjons-DTO-er, mapper og validering.
+- [x] Legg til unit tests for transkripsjons-DTO-er og mapper.
+- [ ] Legg til unit tests for validering av transkripsjonshandlinger.
 - [ ] Legg til ViewModel-tester med fakes for review-innhenting og transkripsjonshandlinger.
 - [ ] Legg til Compose/instrumented tester for utvidbare seksjoner og transkripsjonsdialoger.
 - [ ] Manuelt verifiser transkripsjonsflyt, observasjonsendringer og avvikshåndtering mot backend.
@@ -197,13 +198,14 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 
 ## 8. Testing og verifikasjon
 
-- [ ] Legg til unit tests for kategori og underkategori-regler.
+- [x] Legg til unit tests for kategori og underkategori-regler.
 - [ ] Legg til unit tests for wizard-state transitions.
-- [ ] Legg til unit tests for validering av tittel og kategori.
-- [ ] Legg til unit tests for DTO/entity/domain-mappere.
-- [ ] Legg til unit tests for upload-status mapping.
+- [x] Legg til unit tests for validering av tittel og kategori.
+- [x] Legg til unit tests for DTO/domain-mappere for transkripsjonsgjennomgang.
+- [ ] Legg til unit tests for entity-mappere.
+- [x] Legg til unit tests for upload-status mapping.
 - [ ] Legg til unit tests for upload polling-resultater.
-- [ ] Legg til ViewModel-tester med fakes for wizard.
+- [x] Legg til ViewModel-tester med fakes for wizard.
 - [ ] Legg til ViewModel-tester med fakes for upload-status.
 - [ ] Legg til auth tester for token refresh.
 - [ ] Legg til Compose/instrumented test for login til Home.

@@ -16,6 +16,8 @@ data class TranscriptionRecordingDto(
     val mediaType: String,
     val category: String,
     val subCategory: String,
+    val matchPeriod: String? = null,
+    val matchClockStartMillis: Long? = null,
     val transcriptionId: String,
     val transcriptText: String = "",
     val events: List<TranscriptionEventDto> = emptyList(),
@@ -29,6 +31,9 @@ data class TranscriptionEventDto(
     val startMillis: Long,
     val endMillis: Long,
     val manuallyEdited: Boolean = false,
+    val matchPeriod: String? = null,
+    val matchStartMillis: Long? = null,
+    val matchEndMillis: Long? = null,
 )
 
 @Serializable

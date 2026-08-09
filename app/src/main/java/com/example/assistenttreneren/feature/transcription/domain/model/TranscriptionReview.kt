@@ -12,6 +12,8 @@ data class TranscriptionRecording(
     val mediaType: String,
     val category: String,
     val subCategory: String,
+    val matchPeriod: String?,
+    val matchClockStartMillis: Long?,
     val transcriptionId: String,
     val transcriptText: String,
     val events: List<TranscriptionEvent>,
@@ -24,6 +26,9 @@ data class TranscriptionEvent(
     val startMillis: Long,
     val endMillis: Long,
     val manuallyEdited: Boolean,
+    val matchPeriod: String?,
+    val matchStartMillis: Long?,
+    val matchEndMillis: Long?,
 )
 
 data class TranscriptionEventIssue(

@@ -18,7 +18,7 @@ import com.example.assistenttreneren.core.database.entity.UploadJobEntity
         UploadJobEntity::class,
         AnalysisMetadataEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class AssistentTrenerenDatabase : RoomDatabase() {
