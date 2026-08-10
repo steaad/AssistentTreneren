@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,24 +14,37 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,7 +55,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -88,6 +105,7 @@ fun AudioRecordingStepScreen(
     var matchClockStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var matchClockPeriod by rememberSaveable { mutableStateOf<String?>(null) }
     var showStopMatchClockDialog by rememberSaveable { mutableStateOf(false) }
+    var isVideoPreviewExpanded by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(matchClockStartedAtMillis) {
         while (matchClockStartedAtMillis != null) {
@@ -156,39 +174,51 @@ fun AudioRecordingStepScreen(
             },
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            RecordingMediaTypeSegmentedButtons(
-                selectedMediaType = recordingUiState.selectedMediaType,
-                enabled = !recordingUiState.isRecording,
-                onMediaTypeSelected = recordingViewModel::onMediaTypeSelected,
-            )
-
-            SubCategorySegmentedButtons(
-                subCategories = subCategories,
-                selectedSubCategory = recordingUiState.subCategory,
-                enabled = !recordingUiState.isRecording,
-                onSubCategorySelected = { subCategory ->
-                    val selectedPeriod = subCategory.toMatchPeriod()
-                    if (selectedPeriod != null && selectedPeriod != matchClockPeriod) {
-                        matchClockPeriod = selectedPeriod
-                        matchClockStartedAtMillis = null
-                        matchClockElapsedMillis = 0L
-                    }
-                    recordingViewModel.onSubCategorySelected(subCategory)
-                },
-            )
-
-            if (category == "Kamp") {
-                MatchClockPanel(
-                    elapsedMillis = matchClockElapsedMillis,
-                    isRunning = matchClockStartedAtMillis != null,
-                    onStart = {
-                        if (matchClockStartedAtMillis == null) {
-                            matchClockStartedAtMillis = System.currentTimeMillis() - matchClockElapsedMillis
-                        }
-                    },
-                    onPause = { matchClockStartedAtMillis = null },
-                    onStop = { showStopMatchClockDialog = true },
+            if (!isVideoPreviewExpanded) {
+                RecordingMediaTypeSegmentedButtons(
+                    selectedMediaType = recordingUiState.selectedMediaType,
+                    enabled = !recordingUiState.isRecording,
+                    onMediaTypeSelected = recordingViewModel::onMediaTypeSelected,
                 )
+
+                SubCategorySegmentedButtons(
+                    subCategories = subCategories,
+                    selectedSubCategory = recordingUiState.subCategory,
+                    enabled = !recordingUiState.isRecording &&
+                        (category != "Kamp" || matchClockStartedAtMillis == null),
+                    onSubCategorySelected = { subCategory ->
+                        if (category == "Kamp" && matchClockStartedAtMillis != null) {
+                            return@SubCategorySegmentedButtons
+                        }
+                        val selectedPeriod = subCategory.toMatchPeriod()
+                        if (selectedPeriod != null && selectedPeriod != matchClockPeriod) {
+                            matchClockPeriod = selectedPeriod
+                            matchClockStartedAtMillis = null
+                            matchClockElapsedMillis = 0L
+                        }
+                        recordingViewModel.onSubCategorySelected(subCategory)
+                    },
+                )
+
+                if (category == "Kamp" && recordingUiState.subCategory.isMatchPeriod()) {
+                    MatchClockPanel(
+                        elapsedMillis = matchClockElapsedMillis,
+                        isRunning = matchClockStartedAtMillis != null,
+                        matchPeriodLabel = matchClockPeriod?.toMatchPeriodLabel(),
+                        canStop = !isMatchPeriodRecording(
+                            category = category,
+                            subCategory = recordingUiState.subCategory,
+                            isRecording = recordingUiState.isRecording,
+                        ),
+                        initiallyExpanded = recordingUiState.selectedMediaType != RecordingMediaType.Video,
+                        onStart = {
+                            if (matchClockStartedAtMillis == null) {
+                                matchClockStartedAtMillis = System.currentTimeMillis() - matchClockElapsedMillis
+                            }
+                        },
+                        onStop = { showStopMatchClockDialog = true },
+                    )
+                }
             }
 
             when (recordingUiState.selectedMediaType) {
@@ -221,7 +251,9 @@ fun AudioRecordingStepScreen(
                     recordingUiState = recordingUiState,
                     permissionMessageVisible = permissionMessageVisible,
                     canStartRecording = category != null && canStartMatchRecording(category, recordingUiState.subCategory, matchClockStartedAtMillis != null),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
+                    isPreviewExpanded = isVideoPreviewExpanded,
+                    onPreviewExpansionChanged = { isVideoPreviewExpanded = it },
                     onBindPreview = { previewView ->
                         recordingViewModel.bindVideoPreview(
                             context = context,
@@ -275,6 +307,31 @@ fun AudioRecordingStepScreen(
             dismissButton = { OutlinedButton(onClick = { showStopMatchClockDialog = false }) { Text("Avbryt") } },
         )
     }
+
+    if (isVideoPreviewExpanded) {
+        Dialog(onDismissRequest = { isVideoPreviewExpanded = false }) {
+            Surface(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AndroidView(
+                        factory = { previewContext ->
+                            PreviewView(previewContext).apply {
+                                scaleType = PreviewView.ScaleType.FILL_CENTER
+                                recordingViewModel.bindVideoPreview(context, lifecycleOwner, this)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Button(
+                        onClick = { isVideoPreviewExpanded = false },
+                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    ) {
+                        Icon(Icons.Outlined.Remove, contentDescription = null)
+                        Text("Minimer")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -312,34 +369,63 @@ private fun RecordingMediaTypeSegmentedButtons(
 private fun MatchClockPanel(
     elapsedMillis: Long,
     isRunning: Boolean,
+    matchPeriodLabel: String?,
+    canStop: Boolean,
+    initiallyExpanded: Boolean,
     onStart: () -> Unit,
-    onPause: () -> Unit,
     onStop: () -> Unit,
 ) {
+    var expanded by rememberSaveable("match-clock-$initiallyExpanded") { mutableStateOf(initiallyExpanded) }
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(Icons.Outlined.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(44.dp))
-            Text("Kamptid", style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = formatStopwatchTime(elapsedMillis),
-                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 48.sp),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Kamptid", style = MaterialTheme.typography.titleMedium)
+                    Text(formatStopwatchTime(elapsedMillis), style = MaterialTheme.typography.titleMedium)
+                    matchPeriodLabel?.let { label ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                        ) {
+                            Text(
+                                text = label,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = if (expanded) "Skjul kamptid" else "Vis kamptid")
+                }
+            }
+            if (expanded) {
+                Text(
+                    text = formatStopwatchTime(elapsedMillis),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontSize = 48.sp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = onStart, enabled = !isRunning) {
                     Icon(Icons.Outlined.PlayArrow, contentDescription = null)
                     Text("Start")
                 }
-                OutlinedButton(onClick = onPause, enabled = isRunning) {
-                    Icon(Icons.Outlined.Pause, contentDescription = null)
-                    Text("Pause")
-                }
-                OutlinedButton(onClick = onStop, enabled = elapsedMillis > 0L || isRunning) {
+                OutlinedButton(onClick = onStop, enabled = canStop && (elapsedMillis > 0L || isRunning)) {
                     Icon(Icons.Outlined.Stop, contentDescription = null)
                     Text("Stopp")
+                }
+            }
+                if (!canStop) {
+                    Text(
+                        "Stopp opptaket før kampuret kan stoppes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         }
@@ -351,6 +437,8 @@ private fun VideoRecordingPanel(
     recordingUiState: RecordingUiState,
     permissionMessageVisible: Boolean,
     canStartRecording: Boolean,
+    isPreviewExpanded: Boolean,
+    onPreviewExpansionChanged: (Boolean) -> Unit,
     onBindPreview: (PreviewView) -> Unit,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
@@ -362,13 +450,7 @@ private fun VideoRecordingPanel(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { context ->
                     PreviewView(context).apply {
@@ -376,10 +458,25 @@ private fun VideoRecordingPanel(
                         onBindPreview(this)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = Modifier.fillMaxSize().alpha(0f),
             )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            RecordingCaptureIndicator(
+                icon = Icons.Outlined.Videocam,
+                isRecording = recordingUiState.isRecording,
+                activeText = "VIDEOOPPTAK PÅGÅR",
+            )
+
+            OutlinedButton(onClick = { onPreviewExpansionChanged(true) }) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Text("Maksimer")
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -409,6 +506,7 @@ private fun VideoRecordingPanel(
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
+        }
     }
 }
 
@@ -434,12 +532,7 @@ private fun RecordingControlPanel(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Mic,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(44.dp),
-            )
+            RecordingCaptureIndicator(Icons.Outlined.Mic, recordingUiState.isRecording, "OPPTAK PÅGÅR")
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -466,6 +559,58 @@ private fun RecordingControlPanel(
             RecordingStatusText(
                 recordingUiState = recordingUiState,
                 permissionMessageVisible = permissionMessageVisible,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecordingCaptureIndicator(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isRecording: Boolean,
+    activeText: String,
+) {
+    val transition = rememberInfiniteTransition(label = "recording-microphone-pulse")
+    val ringScale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_000),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "recording-microphone-ring-scale",
+    )
+    val ringAlpha by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 0.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_000),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "recording-microphone-ring-alpha",
+    )
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.Center) {
+            if (isRecording) {
+                Surface(
+                    modifier = Modifier.size(56.dp).scale(ringScale),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.error.copy(alpha = ringAlpha),
+                ) {}
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(44.dp),
+            )
+        }
+        if (isRecording) {
+            Text(
+                text = "● $activeText",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
             )
         }
     }
@@ -582,10 +727,25 @@ private fun canStartMatchRecording(
 ): Boolean =
     category != "Kamp" || subCategory !in setOf("1.omgang", "2.omgang") || isMatchClockRunning
 
+private fun String.isMatchPeriod(): Boolean = this in setOf("1.omgang", "2.omgang")
+
+private fun isMatchPeriodRecording(
+    category: String?,
+    subCategory: String,
+    isRecording: Boolean,
+): Boolean =
+    isRecording && category == "Kamp" && subCategory in setOf("1.omgang", "2.omgang")
+
 private fun RecordingSubCategory.toMatchPeriod(): String? = when (displayName) {
     "1.omgang" -> "FIRST_HALF"
     "2.omgang" -> "SECOND_HALF"
     else -> null
+}
+
+private fun String.toMatchPeriodLabel(): String = when (this) {
+    "FIRST_HALF" -> "1.omg"
+    "SECOND_HALF" -> "2.omg"
+    else -> this
 }
 
 private fun formatStopwatchTime(elapsedMillis: Long): String {

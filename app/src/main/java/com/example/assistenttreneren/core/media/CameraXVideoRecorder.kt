@@ -30,6 +30,7 @@ class CameraXVideoRecorder @Inject constructor(
     private val fileNameFormatter: RecordingFileNameFormatter,
 ) {
     private var videoCapture: VideoCapture<Recorder>? = null
+    private var previewUseCase: Preview? = null
     private var activeRecording: Recording? = null
     private var activeSession: ActiveVideoRecording? = null
 
@@ -38,6 +39,10 @@ class CameraXVideoRecorder @Inject constructor(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
     ) {
+        previewUseCase?.let { preview ->
+            preview.surfaceProvider = previewView.surfaceProvider
+            return
+        }
         val cameraProvider = context.cameraProvider()
         val preview = Preview.Builder().build().also { preview ->
             preview.surfaceProvider = previewView.surfaceProvider
@@ -56,6 +61,7 @@ class CameraXVideoRecorder @Inject constructor(
         )
         camera.cameraControl.setLinearZoom(FIXED_LINEAR_ZOOM)
         videoCapture = capture
+        previewUseCase = preview
     }
 
     fun startRecording(
