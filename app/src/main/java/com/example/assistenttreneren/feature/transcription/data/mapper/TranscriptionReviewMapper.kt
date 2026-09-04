@@ -22,6 +22,7 @@ fun TranscriptionReviewDto.toTranscriptionReview(): TranscriptionReview = Transc
             subCategory = recording.subCategory,
             matchPeriod = recording.matchPeriod,
             matchClockStartMillis = recording.matchClockStartMillis,
+            matchClockEndMillis = recording.matchClockEndMillis,
             transcriptionId = recording.transcriptionId,
             transcriptText = recording.transcriptText,
             events = recording.events.map { it.toTranscriptionEvent() },
@@ -30,10 +31,38 @@ fun TranscriptionReviewDto.toTranscriptionReview(): TranscriptionReview = Transc
     },
 )
 
-fun TranscriptionEventInput.toRequestDto() = TranscriptionEventRequestDto(text, startMillis, endMillis)
+fun TranscriptionEventInput.toRequestDto() = TranscriptionEventRequestDto(
+    text = text,
+    startMillis = startMillis,
+    endMillis = endMillis,
+    eventType = eventType,
+    playerOutName = playerOutName,
+    playerInName = playerInName,
+    playerNames = playerNames,
+)
 
-private fun TranscriptionEventDto.toTranscriptionEvent() = TranscriptionEvent(eventId, text, startMillis, endMillis, manuallyEdited, matchPeriod, matchStartMillis, matchEndMillis)
+private fun TranscriptionEventDto.toTranscriptionEvent() = TranscriptionEvent(
+    eventId = eventId,
+    text = text,
+    startMillis = startMillis,
+    endMillis = endMillis,
+    eventType = eventType,
+    playerOutName = playerOutName,
+    playerInName = playerInName,
+    playerNames = playerNames,
+    manuallyEdited = manuallyEdited,
+    matchPeriod = matchPeriod,
+    matchStartMillis = matchStartMillis,
+    matchEndMillis = matchEndMillis,
+)
 
 private fun TranscriptionEventIssueDto.toTranscriptionEventIssue() = TranscriptionEventIssue(
-    issueId, issueType, candidateText, contextBefore, contextAfter, startMillis, endMillis,
+    issueId,
+    issueType,
+    relatedEventId,
+    candidateText,
+    message,
+    excerpt,
+    startMillis,
+    endMillis,
 )

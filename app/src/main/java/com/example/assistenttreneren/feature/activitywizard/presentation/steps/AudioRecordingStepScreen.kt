@@ -104,8 +104,13 @@ fun AudioRecordingStepScreen(
     var matchClockElapsedMillis by rememberSaveable { mutableLongStateOf(0L) }
     var matchClockStartedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var matchClockPeriod by rememberSaveable { mutableStateOf<String?>(null) }
+    var matchPeriodStartedAtMatchClockMillis by rememberSaveable { mutableLongStateOf(0L) }
     var showStopMatchClockDialog by rememberSaveable { mutableStateOf(false) }
     var isVideoPreviewExpanded by rememberSaveable { mutableStateOf(false) }
+
+    fun currentMatchClockMillis(): Long? = matchClockStartedAtMillis?.let { startedAt ->
+        (System.currentTimeMillis() - startedAt).coerceAtLeast(0L)
+    }
 
     LaunchedEffect(matchClockStartedAtMillis) {
         while (matchClockStartedAtMillis != null) {
@@ -143,12 +148,16 @@ fun AudioRecordingStepScreen(
                 RecordingMediaType.Audio -> recordingViewModel.startAudioRecording(
                     category = category,
                     activityId = activityId,
+                    matchPeriod = matchClockPeriod,
+                    matchClockStartMillis = currentMatchClockMillis(),
                 )
 
                 RecordingMediaType.Video -> recordingViewModel.startVideoRecording(
                     context = context,
                     category = category,
                     activityId = activityId,
+                    matchPeriod = matchClockPeriod,
+                    matchClockStartMillis = currentMatchClockMillis(),
                 )
 
                 null -> Unit
@@ -162,7 +171,9 @@ fun AudioRecordingStepScreen(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
         onNavigateNext = onNavigateNext,
-        isBackEnabled = !recordingUiState.isRecording,
+        isBackEnabled = !recordingUiState.isRecording &&
+            matchClockStartedAtMillis == null &&
+            matchClockElapsedMillis == 0L,
         isNextEnabled = !recordingUiState.isRecording,
         contentFillsAvailableSpace = recordingUiState.selectedMediaType == RecordingMediaType.Video,
     ) {
@@ -191,28 +202,27 @@ fun AudioRecordingStepScreen(
                             return@SubCategorySegmentedButtons
                         }
                         val selectedPeriod = subCategory.toMatchPeriod()
-                        if (selectedPeriod != null && selectedPeriod != matchClockPeriod) {
+                        if (selectedPeriod != matchClockPeriod) {
                             matchClockPeriod = selectedPeriod
+                            matchPeriodStartedAtMatchClockMillis = matchClockElapsedMillis
                             matchClockStartedAtMillis = null
-                            matchClockElapsedMillis = 0L
                         }
                         recordingViewModel.onSubCategorySelected(subCategory)
                     },
                 )
 
-                if (category == "Kamp" && recordingUiState.subCategory.isMatchPeriod()) {
+                if (category == "Kamp") {
                     MatchClockPanel(
                         elapsedMillis = matchClockElapsedMillis,
+                        periodElapsedMillis = (matchClockElapsedMillis - matchPeriodStartedAtMatchClockMillis)
+                            .coerceAtLeast(0L),
                         isRunning = matchClockStartedAtMillis != null,
                         matchPeriodLabel = matchClockPeriod?.toMatchPeriodLabel(),
-                        canStop = !isMatchPeriodRecording(
-                            category = category,
-                            subCategory = recordingUiState.subCategory,
-                            isRecording = recordingUiState.isRecording,
-                        ),
+                        halfDurationMinutes = uiState.matchHalfDurationMinutes,
                         initiallyExpanded = recordingUiState.selectedMediaType != RecordingMediaType.Video,
+                        isStartEnabled = recordingUiState.subCategory.isNotBlank(),
                         onStart = {
-                            if (matchClockStartedAtMillis == null) {
+                            if (recordingUiState.subCategory.isNotBlank() && matchClockStartedAtMillis == null) {
                                 matchClockStartedAtMillis = System.currentTimeMillis() - matchClockElapsedMillis
                             }
                         },
@@ -236,6 +246,8 @@ fun AudioRecordingStepScreen(
                             recordingViewModel.startAudioRecording(
                                 category = category,
                                 activityId = activityId,
+                                matchPeriod = matchClockPeriod,
+                                matchClockStartMillis = currentMatchClockMillis(),
                             )
                         } else {
                             shouldStartAfterPermissionGrant = true
@@ -296,11 +308,14 @@ fun AudioRecordingStepScreen(
         AlertDialog(
             onDismissRequest = { showStopMatchClockDialog = false },
             title = { Text("Stopp kampuret?") },
-            text = { Text("Er du sikker på at du vil stoppe kampuret? Tiden nullstilles til 00 : 00 : 00.") },
+            text = { Text("Er du sikker på at du vil stoppe kampuret? Dette gjøres normalt bare når det er pause eller at kampen er ferdigspilt.") },
             confirmButton = {
                 Button(onClick = {
+                    matchClockElapsedMillis = currentMatchClockMillis() ?: matchClockElapsedMillis
                     matchClockStartedAtMillis = null
-                    matchClockElapsedMillis = 0L
+                    matchClockPeriod = null
+                    matchPeriodStartedAtMatchClockMillis = matchClockElapsedMillis
+                    recordingViewModel.clearSubCategory()
                     showStopMatchClockDialog = false
                 }) { Text("Stopp") }
             },
@@ -368,14 +383,19 @@ private fun RecordingMediaTypeSegmentedButtons(
 @Composable
 private fun MatchClockPanel(
     elapsedMillis: Long,
+    periodElapsedMillis: Long,
     isRunning: Boolean,
     matchPeriodLabel: String?,
-    canStop: Boolean,
+    halfDurationMinutes: Int,
     initiallyExpanded: Boolean,
+    isStartEnabled: Boolean,
     onStart: () -> Unit,
     onStop: () -> Unit,
 ) {
     var expanded by rememberSaveable("match-clock-$initiallyExpanded") { mutableStateOf(initiallyExpanded) }
+    val halfDurationMillis = halfDurationMinutes * 60_000L
+    val halfElapsedMillis = periodElapsedMillis.coerceAtMost(halfDurationMillis)
+    val overtimeElapsedMillis = (periodElapsedMillis - halfDurationMillis).coerceAtLeast(0L)
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -386,7 +406,20 @@ private fun MatchClockPanel(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Kamptid", style = MaterialTheme.typography.titleMedium)
-                    Text(formatStopwatchTime(elapsedMillis), style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = formatMatchClock(halfElapsedMillis),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (overtimeElapsedMillis > 0L) {
+                            Text(" - ", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                text = formatMatchClock(overtimeElapsedMillis),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                     matchPeriodLabel?.let { label ->
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -411,22 +444,15 @@ private fun MatchClockPanel(
                     style = MaterialTheme.typography.headlineSmall.copy(fontSize = 48.sp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onStart, enabled = !isRunning) {
+                Button(onClick = onStart, enabled = isStartEnabled && !isRunning) {
                     Icon(Icons.Outlined.PlayArrow, contentDescription = null)
                     Text("Start")
                 }
-                OutlinedButton(onClick = onStop, enabled = canStop && (elapsedMillis > 0L || isRunning)) {
+                OutlinedButton(onClick = onStop, enabled = isRunning) {
                     Icon(Icons.Outlined.Stop, contentDescription = null)
                     Text("Stopp")
                 }
             }
-                if (!canStop) {
-                    Text(
-                        "Stopp opptaket før kampuret kan stoppes.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
             }
         }
     }
@@ -727,15 +753,6 @@ private fun canStartMatchRecording(
 ): Boolean =
     category != "Kamp" || subCategory !in setOf("1.omgang", "2.omgang") || isMatchClockRunning
 
-private fun String.isMatchPeriod(): Boolean = this in setOf("1.omgang", "2.omgang")
-
-private fun isMatchPeriodRecording(
-    category: String?,
-    subCategory: String,
-    isRecording: Boolean,
-): Boolean =
-    isRecording && category == "Kamp" && subCategory in setOf("1.omgang", "2.omgang")
-
 private fun RecordingSubCategory.toMatchPeriod(): String? = when (displayName) {
     "1.omgang" -> "FIRST_HALF"
     "2.omgang" -> "SECOND_HALF"
@@ -755,4 +772,9 @@ private fun formatStopwatchTime(elapsedMillis: Long): String {
     val seconds = totalSeconds % 60L
 
     return "%02d : %02d : %02d".format(hours, minutes, seconds)
+}
+
+private fun formatMatchClock(elapsedMillis: Long): String {
+    val totalSeconds = elapsedMillis / 1_000L
+    return "%02d:%02d".format(totalSeconds / 60L, totalSeconds % 60L)
 }

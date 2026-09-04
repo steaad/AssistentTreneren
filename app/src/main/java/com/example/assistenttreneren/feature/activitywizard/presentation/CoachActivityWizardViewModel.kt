@@ -12,6 +12,9 @@ import com.example.assistenttreneren.feature.activitywizard.domain.repository.Lo
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.CreateCoachActivityUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetCoachActivitiesUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateCoachActivityUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterSuggestionsUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateMatchRosterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +30,9 @@ class CoachActivityWizardViewModel @Inject constructor(
     private val getCoachActivitiesUseCase: GetCoachActivitiesUseCase,
     private val createCoachActivityUseCase: CreateCoachActivityUseCase,
     private val updateCoachActivityUseCase: UpdateCoachActivityUseCase,
+    private val getMatchRosterUseCase: GetMatchRosterUseCase,
+    private val getMatchRosterSuggestionsUseCase: GetMatchRosterSuggestionsUseCase,
+    private val updateMatchRosterUseCase: UpdateMatchRosterUseCase,
     private val localCoachActivityRepository: LocalCoachActivityRepository,
     private val sessionManager: SessionManager,
 ) : ViewModel() {
@@ -75,8 +81,10 @@ class CoachActivityWizardViewModel @Inject constructor(
             currentState.copy(
                 activityCategory = activityCategory,
                 activityErrorMessage = null,
+                matchRoster = if (activityCategory == "Kamp") currentState.matchRoster else emptyList(),
             )
         }
+        if (activityCategory == "Kamp") loadMatchRosterSuggestions()
     }
 
     fun onExistingActivitySelected(activityId: String) {
@@ -93,6 +101,20 @@ class CoachActivityWizardViewModel @Inject constructor(
                 activityErrorMessage = null,
             )
         }
+        if (uiState.value.activityCategory == "Kamp") loadMatchRoster(activityId)
+    }
+
+    fun onMatchRosterChanged(playerNames: List<String>) {
+        _uiState.update { it.copy(matchRoster = playerNames.map(String::trim), activityErrorMessage = null) }
+    }
+
+    fun onMatchRosterSuggestionSelected(playerNames: List<String>) {
+        onMatchRosterChanged(playerNames)
+    }
+
+    fun onMatchHalfDurationChanged(minutes: Int) {
+        if (minutes !in MATCH_HALF_DURATION_OPTIONS) return
+        _uiState.update { it.copy(matchHalfDurationMinutes = minutes) }
     }
 
     fun onRetryLoadExistingActivitiesClicked() {
@@ -221,6 +243,7 @@ class CoachActivityWizardViewModel @Inject constructor(
                 )
             ) {
                 is CoachActivityResult.Success -> {
+                    if (!saveMatchRosterIfRequired(updateResult.data.activityId, onNavigateNext)) return@launch
                     localCoachActivityRepository.saveActivity(updateResult.data)
                     _uiState.update {
                         it.copy(
@@ -232,7 +255,7 @@ class CoachActivityWizardViewModel @Inject constructor(
                             activityErrorMessage = null,
                         )
                     }
-                    onNavigateNext()
+                    if (uiState.value.activityCategory != "Kamp") onNavigateNext()
                 }
 
                 is CoachActivityResult.Failure -> {
@@ -265,7 +288,7 @@ class CoachActivityWizardViewModel @Inject constructor(
             return
         }
 
-        if (updatedTitle == selectedActivity.title.orEmpty().trim()) {
+        if (updatedTitle == selectedActivity.title.orEmpty().trim() && currentState.activityCategory != "Kamp") {
             onNavigateNext()
             return
         }
@@ -306,6 +329,7 @@ class CoachActivityWizardViewModel @Inject constructor(
             ) {
                 is CoachActivityResult.Success -> {
                     localCoachActivityRepository.saveActivity(result.data)
+                    if (!saveMatchRosterIfRequired(result.data.activityId, onNavigateNext)) return@launch
                     updateExistingActivityStateAndNavigate(result.data, onNavigateNext)
                 }
 
@@ -318,6 +342,52 @@ class CoachActivityWizardViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun loadMatchRoster(activityId: String) = viewModelScope.launch {
+        if (isBackendBypassActive()) return@launch
+        when (val result = getMatchRosterUseCase(activityId)) {
+            is CoachActivityResult.Success -> _uiState.update { it.copy(matchRoster = result.data) }
+            is CoachActivityResult.Failure -> _uiState.update { it.copy(activityErrorMessage = result.error.toUserMessage()) }
+        }
+    }
+
+    private fun loadMatchRosterSuggestions() = viewModelScope.launch {
+        if (_uiState.value.isLoadingMatchRosterSuggestions) return@launch
+        _uiState.update {
+            it.copy(
+                isLoadingMatchRosterSuggestions = true,
+                matchRosterSuggestionsErrorMessage = null,
+            )
+        }
+        if (isBackendBypassActive()) {
+            _uiState.update { it.copy(isLoadingMatchRosterSuggestions = false) }
+            return@launch
+        }
+        when (val result = getMatchRosterSuggestionsUseCase()) {
+            is CoachActivityResult.Success -> _uiState.update {
+                it.copy(
+                    matchRosterSuggestions = result.data,
+                    isLoadingMatchRosterSuggestions = false,
+                )
+            }
+
+            is CoachActivityResult.Failure -> _uiState.update {
+                it.copy(
+                    isLoadingMatchRosterSuggestions = false,
+                    matchRosterSuggestionsErrorMessage = result.error.toUserMessage(),
+                )
+            }
+        }
+    }
+
+    private suspend fun saveMatchRosterIfRequired(activityId: String, onNavigateNext: () -> Unit): Boolean {
+        val roster = uiState.value.matchRoster
+        if (uiState.value.activityCategory != "Kamp") return true
+        return when (val result = updateMatchRosterUseCase(activityId, roster)) {
+            is CoachActivityResult.Success -> { onNavigateNext(); true }
+            is CoachActivityResult.Failure -> { _uiState.update { it.copy(isCreatingActivity = false, isUpdatingExistingActivity = false, activityErrorMessage = result.error.toUserMessage()) }; false }
         }
     }
 
@@ -398,4 +468,8 @@ class CoachActivityWizardViewModel @Inject constructor(
             is CoachActivityError.ServerError -> "Serverfeil ($code). Prøv igjen senere."
             is CoachActivityError.Unexpected -> "Noe gikk galt. Prøv igjen."
         }
+
+    private companion object {
+        val MATCH_HALF_DURATION_OPTIONS = setOf(1, 20, 25, 30, 35, 40, 45)
+    }
 }

@@ -1,20 +1,21 @@
 package com.example.assistenttreneren.feature.activitywizard.presentation.steps
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +23,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +42,7 @@ import com.example.assistenttreneren.R
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardStep
 import com.example.assistenttreneren.feature.activitywizard.presentation.CoachActivityWizardUiState
 import com.example.assistenttreneren.feature.activitywizard.presentation.ExistingCoachActivityUiModel
+import com.example.assistenttreneren.feature.activitywizard.domain.model.MatchRosterSuggestion
 import com.example.assistenttreneren.feature.activitywizard.presentation.RecordingUiModel
 import com.example.assistenttreneren.feature.activitywizard.presentation.components.CoachActivityWizardScaffold
 
@@ -52,10 +55,14 @@ fun ActivityTypeStepScreen(
     onTitleChanged: (String) -> Unit,
     onActivityCategorySelected: (String) -> Unit,
     onExistingActivitySelected: (String) -> Unit,
+    onMatchRosterChanged: (List<String>) -> Unit,
+    onMatchRosterSuggestionSelected: (List<String>) -> Unit,
+    onMatchHalfDurationChanged: (Int) -> Unit,
     onRetryLoadExistingActivitiesClicked: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateNext: () -> Unit,
 ) {
+    var showRosterDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         onStepOpened(CoachActivityWizardStep.ActivityType)
     }
@@ -100,6 +107,10 @@ fun ActivityTypeStepScreen(
                 selectedActivityCategory = uiState.activityCategory,
                 onTitleChanged = onTitleChanged,
                 onActivityCategorySelected = onActivityCategorySelected,
+                matchRoster = uiState.matchRoster,
+                onEditMatchRoster = { showRosterDialog = true },
+                matchHalfDurationMinutes = uiState.matchHalfDurationMinutes,
+                onMatchHalfDurationChanged = onMatchHalfDurationChanged,
             )
         } else if (uiState.isExistingActivityFormVisible) {
             ExistingActivityForm(
@@ -112,6 +123,10 @@ fun ActivityTypeStepScreen(
                 onTitleChanged = onTitleChanged,
                 onExistingActivitySelected = onExistingActivitySelected,
                 onRetryLoadExistingActivitiesClicked = onRetryLoadExistingActivitiesClicked,
+                matchRoster = uiState.matchRoster,
+                onEditMatchRoster = { showRosterDialog = true },
+                matchHalfDurationMinutes = uiState.matchHalfDurationMinutes,
+                onMatchHalfDurationChanged = onMatchHalfDurationChanged,
             )
         }
 
@@ -144,6 +159,17 @@ fun ActivityTypeStepScreen(
             }
         }
     }
+    if (showRosterDialog) {
+        MatchRosterDialog(
+            initialRoster = uiState.matchRoster,
+            suggestions = uiState.matchRosterSuggestions,
+            isLoadingSuggestions = uiState.isLoadingMatchRosterSuggestions,
+            suggestionsErrorMessage = uiState.matchRosterSuggestionsErrorMessage,
+            onDismiss = { showRosterDialog = false },
+            onSave = onMatchRosterChanged,
+            onSuggestionSelected = onMatchRosterSuggestionSelected,
+        )
+    }
 }
 
 @Composable
@@ -152,6 +178,10 @@ private fun CreateActivityForm(
     selectedActivityCategory: String?,
     onTitleChanged: (String) -> Unit,
     onActivityCategorySelected: (String) -> Unit,
+    matchRoster: List<String>,
+    onEditMatchRoster: () -> Unit,
+    matchHalfDurationMinutes: Int,
+    onMatchHalfDurationChanged: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val categories = listOf(
@@ -205,6 +235,10 @@ private fun CreateActivityForm(
                     }
                 }
             }
+            if (selectedActivityCategory == "Kamp") {
+                MatchRosterButton(matchRoster, onEditMatchRoster)
+                MatchHalfDurationDropdown(matchHalfDurationMinutes, onMatchHalfDurationChanged)
+            }
         }
     }
 }
@@ -220,9 +254,13 @@ private fun ExistingActivityForm(
     onTitleChanged: (String) -> Unit,
     onExistingActivitySelected: (String) -> Unit,
     onRetryLoadExistingActivitiesClicked: () -> Unit,
+    matchRoster: List<String>,
+    onEditMatchRoster: () -> Unit,
+    matchHalfDurationMinutes: Int,
+    onMatchHalfDurationChanged: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var isMenuExpanded by remember { mutableStateOf(false) }
+    var showActivityPicker by remember { mutableStateOf(false) }
     var isTitleEditMode by remember(selectedActivity?.activityId) { mutableStateOf(false) }
 
     OutlinedCard(
@@ -240,7 +278,7 @@ private fun ExistingActivityForm(
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick = {
-                        isMenuExpanded = true
+                        showActivityPicker = true
                     },
                     enabled = activities.isNotEmpty() && !isLoading && !isUpdatingActivity,
                     modifier = Modifier.fillMaxWidth(),
@@ -265,25 +303,6 @@ private fun ExistingActivityForm(
                     }
                 }
 
-                DropdownMenu(
-                    expanded = isMenuExpanded,
-                    onDismissRequest = {
-                        isMenuExpanded = false
-                    },
-                    modifier = Modifier.widthIn(max = 360.dp),
-                ) {
-                    activities.forEach { activity ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(text = activity.dropdownLabel)
-                            },
-                            onClick = {
-                                isMenuExpanded = false
-                                onExistingActivitySelected(activity.activityId)
-                            },
-                        )
-                    }
-                }
             }
 
             if (errorMessage != null) {
@@ -328,8 +347,184 @@ private fun ExistingActivityForm(
             RecordingsList(
                 recordings = selectedActivity?.recordings.orEmpty(),
             )
+            if (selectedActivity?.activityCategory == "Kamp") {
+                MatchRosterButton(matchRoster, onEditMatchRoster)
+                MatchHalfDurationDropdown(matchHalfDurationMinutes, onMatchHalfDurationChanged)
+            }
         }
     }
+    if (showActivityPicker) {
+        SelectionListDialog(
+            title = stringResource(R.string.wizard_existing_activity_dropdown_label),
+            items = activities.map { SelectionListItem(title = it.dropdownLabel) },
+            onDismiss = { showActivityPicker = false },
+            onItemSelected = { index ->
+                showActivityPicker = false
+                onExistingActivitySelected(activities[index].activityId)
+            },
+        )
+    }
+}
+
+@Composable
+private fun MatchRosterButton(roster: List<String>, onClick: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = onClick) { Text("+ Kamptropp") }
+        if (roster.isEmpty()) Text("Legg inn kamptropp før du kan gå videre", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun MatchHalfDurationDropdown(
+    selectedMinutes: Int,
+    onSelected: (Int) -> Unit,
+) {
+    var showDurationPicker by remember { mutableStateOf(false) }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { showDurationPicker = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Omgangslengde: $selectedMinutes min",
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
+            }
+        }
+    }
+    if (showDurationPicker) {
+        SelectionListDialog(
+            title = "Velg omgangslengde",
+            items = matchHalfDurationOptions.map { minutes ->
+                SelectionListItem(if (minutes == 1) "1 minutt (test)" else "$minutes minutter")
+            },
+            onDismiss = { showDurationPicker = false },
+            onItemSelected = { index ->
+                onSelected(matchHalfDurationOptions[index])
+                showDurationPicker = false
+            },
+        )
+    }
+}
+
+private val matchHalfDurationOptions = listOf(1, 20, 25, 30, 35, 40, 45)
+
+@Composable
+private fun MatchRosterDialog(
+    initialRoster: List<String>,
+    suggestions: List<MatchRosterSuggestion>,
+    isLoadingSuggestions: Boolean,
+    suggestionsErrorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (List<String>) -> Unit,
+    onSuggestionSelected: (List<String>) -> Unit,
+) {
+    var names by remember { mutableStateOf(initialRoster.joinToString("\n")) }
+    var showSuggestionsPicker by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Kamptropp")
+                Button(
+                    onClick = { showSuggestionsPicker = true },
+                    enabled = !isLoadingSuggestions && suggestions.isNotEmpty(),
+                    modifier = Modifier.height(36.dp),
+                ) {
+                    Text(
+                        text = when {
+                            isLoadingSuggestions -> "Henter..."
+                            suggestions.isEmpty() -> "Ingen tidligere"
+                            else -> "Tidligere tropper"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = names,
+                    onValueChange = { names = it },
+                    label = { Text("Ett spillernavn per linje") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                suggestionsErrorMessage?.let { message ->
+                    Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { onSave(names.lines().map(String::trim).filter(String::isNotBlank)); onDismiss() }) { Text("Lagre") } },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Avbryt") } },
+    )
+    if (showSuggestionsPicker) {
+        SelectionListDialog(
+            title = "Velg tidligere kamptropp",
+            items = suggestions.map { suggestion ->
+                SelectionListItem(
+                    title = suggestion.title,
+                    subtitle = suggestion.playerNames.joinToString(", "),
+                )
+            },
+            onDismiss = { showSuggestionsPicker = false },
+            onItemSelected = { index ->
+                val suggestion = suggestions[index]
+                names = suggestion.playerNames.joinToString("\n")
+                onSuggestionSelected(suggestion.playerNames)
+                showSuggestionsPicker = false
+            },
+        )
+    }
+}
+
+private data class SelectionListItem(
+    val title: String,
+    val subtitle: String? = null,
+)
+
+@Composable
+private fun SelectionListDialog(
+    title: String,
+    items: List<SelectionListItem>,
+    onDismiss: () -> Unit,
+    onItemSelected: (Int) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 360.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                itemsIndexed(items) { index, item ->
+                    OutlinedButton(
+                        onClick = { onItemSelected(index) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(item.title)
+                            item.subtitle?.let { subtitle ->
+                                Text(subtitle, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Avbryt") } },
+    )
 }
 
 @Composable

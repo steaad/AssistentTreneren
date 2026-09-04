@@ -102,6 +102,8 @@ class RecordingViewModel @Inject constructor(
     fun startAudioRecording(
         category: String,
         activityId: String?,
+        matchPeriod: String? = null,
+        matchClockStartMillis: Long? = null,
     ) {
         val subCategory = uiState.value.subCategory.trim()
         if (subCategory.isBlank()) {
@@ -113,6 +115,8 @@ class RecordingViewModel @Inject constructor(
             category = category,
             subCategory = subCategory,
             activityId = activityId,
+            matchPeriod = matchPeriod,
+            matchClockStartMillis = matchClockStartMillis,
         )
     }
 
@@ -140,6 +144,8 @@ class RecordingViewModel @Inject constructor(
         context: Context,
         category: String,
         activityId: String?,
+        matchPeriod: String? = null,
+        matchClockStartMillis: Long? = null,
     ) {
         val subCategory = uiState.value.subCategory.trim()
         if (subCategory.isBlank()) {
@@ -159,6 +165,8 @@ class RecordingViewModel @Inject constructor(
                 category = category,
                 subCategory = subCategory,
                 activityId = activityId,
+                matchPeriod = matchPeriod,
+                matchClockStartMillis = matchClockStartMillis,
                 onStarted = { activeRecording ->
                     _uiState.update {
                         it.copy(

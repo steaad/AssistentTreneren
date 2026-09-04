@@ -21,6 +21,8 @@ class RecordingRepositoryImpl @Inject constructor(
         category: String,
         subCategory: String,
         activityId: String?,
+        matchPeriod: String?,
+        matchClockStartMillis: Long?,
     ) {
         ContextCompat.startForegroundService(
             context,
@@ -29,6 +31,8 @@ class RecordingRepositoryImpl @Inject constructor(
                 category = category,
                 subCategory = subCategory,
                 activityId = activityId,
+                matchPeriod = matchPeriod,
+                matchClockStartMillis = matchClockStartMillis,
             ),
         )
     }

@@ -6,3 +6,9 @@ data class CoachActivity(
     val title: String?,
     val recordings: List<Recording>,
 )
+
+data class MatchRosterSuggestion(
+    val sourceActivityId: String,
+    val title: String,
+    val playerNames: List<String>,
+)

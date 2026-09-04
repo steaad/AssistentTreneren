@@ -69,6 +69,8 @@ class CameraXVideoRecorder @Inject constructor(
         category: String,
         subCategory: String,
         activityId: String?,
+        matchPeriod: String?,
+        matchClockStartMillis: Long?,
         onStarted: (ActiveVideoRecording) -> Unit,
         onCompleted: (RecordingSession) -> Unit,
         onError: (Throwable) -> Unit,
@@ -94,6 +96,8 @@ class CameraXVideoRecorder @Inject constructor(
             category = category,
             subCategory = subCategory,
             startedAtMillis = createdAtMillis,
+            matchPeriod = matchPeriod,
+            matchClockStartMillis = matchClockStartMillis,
         )
         activeSession = session
         activeRecording = pendingRecording.start(ContextCompat.getMainExecutor(context)) { event ->
@@ -118,6 +122,8 @@ class CameraXVideoRecorder @Inject constructor(
                                 category = completedSession.category,
                                 subCategory = completedSession.subCategory,
                                 createdAtMillis = completedSession.startedAtMillis,
+                                matchPeriod = completedSession.matchPeriod,
+                                matchClockStartMillis = completedSession.matchClockStartMillis,
                             ),
                         )
                     }
@@ -177,6 +183,8 @@ class CameraXVideoRecorder @Inject constructor(
         val category: String,
         val subCategory: String,
         val startedAtMillis: Long,
+        val matchPeriod: String?,
+        val matchClockStartMillis: Long?,
     )
 
     private companion object {

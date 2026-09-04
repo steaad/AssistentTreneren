@@ -1,5 +1,6 @@
 package com.example.assistenttreneren.di
 
+import android.util.Log
 import com.example.assistenttreneren.BuildConfig
 import com.example.assistenttreneren.core.network.AuthAuthenticator
 import com.example.assistenttreneren.core.network.AuthInterceptor
@@ -17,8 +18,10 @@ import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.json.JSONObject
 import retrofit2.Retrofit
 
 @Module
@@ -43,6 +46,7 @@ object NetworkModule {
                 )
             }
             .addInterceptor(provideLoggingInterceptor())
+            .addInterceptor(provideTranscriptionReviewLoggingInterceptor())
             .build()
 
     @Provides
@@ -56,6 +60,7 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .authenticator(authAuthenticator)
             .addInterceptor(provideLoggingInterceptor())
+            .addInterceptor(provideTranscriptionReviewLoggingInterceptor())
             .build()
 
     @Provides
@@ -130,8 +135,40 @@ object NetworkModule {
             }
         }
 
+    private fun provideTranscriptionReviewLoggingInterceptor(): Interceptor = Interceptor { chain ->
+        val response = chain.proceed(chain.request())
+        if (
+            BuildConfig.DEBUG &&
+            response.isSuccessful &&
+            chain.request().url.encodedPath.endsWith("/transcription-review")
+        ) {
+            val responseBody = response.peekBody(MAX_TRANSCRIPTION_REVIEW_LOG_BYTES).string()
+            logTranscriptionReviewResponse(responseBody)
+        }
+        response
+    }
+
+    private fun logTranscriptionReviewResponse(responseBody: String) {
+        if (responseBody.isEmpty()) {
+            Log.d(TRANSCRIPTION_REVIEW_LOG_TAG, "Tom transcription-review-respons")
+            return
+        }
+
+        val formattedResponseBody = runCatching {
+            JSONObject(responseBody).toString(JSON_INDENT_SPACES)
+        }.getOrDefault(responseBody)
+
+        formattedResponseBody.chunked(LOG_CHUNK_SIZE).forEachIndexed { index, chunk ->
+            Log.d(TRANSCRIPTION_REVIEW_LOG_TAG, "transcription-review JSON del ${index + 1}: $chunk")
+        }
+    }
+
     private const val NO_AUTH_CLIENT = "NoAuthClient"
     private const val AUTHENTICATED_CLIENT = "AuthenticatedClient"
     private const val NO_AUTH_RETROFIT = "NoAuthRetrofit"
     private const val AUTHENTICATED_RETROFIT = "AuthenticatedRetrofit"
+    private const val TRANSCRIPTION_REVIEW_LOG_TAG = "TranscriptionReview"
+    private const val MAX_TRANSCRIPTION_REVIEW_LOG_BYTES = 1_000_000L
+    private const val LOG_CHUNK_SIZE = 3_000
+    private const val JSON_INDENT_SPACES = 2
 }

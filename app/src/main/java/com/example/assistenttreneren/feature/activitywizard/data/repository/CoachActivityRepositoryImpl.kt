@@ -1,6 +1,8 @@
 package com.example.assistenttreneren.feature.activitywizard.data.repository
 
 import com.example.assistenttreneren.feature.activitywizard.data.dto.UpdateCoachActivityRequestDto
+import com.example.assistenttreneren.feature.activitywizard.data.remote.MatchRosterDto
+import com.example.assistenttreneren.feature.activitywizard.domain.model.MatchRosterSuggestion
 import com.example.assistenttreneren.feature.activitywizard.data.mapper.toCoachActivity
 import com.example.assistenttreneren.feature.activitywizard.data.remote.CoachActivityApi
 import com.example.assistenttreneren.feature.activitywizard.domain.model.CoachActivity
@@ -62,6 +64,31 @@ class CoachActivityRepositoryImpl @Inject constructor(
         runRequest {
             coachActivityApi.getActivity(activityId).toCoachActivity()
         }
+    }
+
+    override suspend fun getMatchRoster(activityId: String): CoachActivityResult<List<String>> = withContext(Dispatchers.IO) {
+        runRequest { coachActivityApi.getMatchRoster(activityId).playerNames }
+    }
+
+    override suspend fun getMatchRosterSuggestions(): CoachActivityResult<List<MatchRosterSuggestion>> =
+        withContext(Dispatchers.IO) {
+            runRequest {
+                coachActivityApi.getMatchRosterSuggestions().map { suggestion ->
+                    MatchRosterSuggestion(
+                        sourceActivityId = suggestion.sourceActivityId,
+                        title = suggestion.title,
+                        playerNames = suggestion.playerNames,
+                    )
+                }
+            }
+        }
+
+    override suspend fun updateMatchRoster(activityId: String, playerNames: List<String>): CoachActivityResult<List<String>> = withContext(Dispatchers.IO) {
+        val names = playerNames.map { it.trim() }
+        if (names.isEmpty() || names.any { it.isBlank() } || names.map { it.lowercase() }.distinct().size != names.size) {
+            return@withContext CoachActivityResult.Failure(CoachActivityError.InvalidInput)
+        }
+        runRequest { coachActivityApi.updateMatchRoster(activityId, MatchRosterDto(names)).playerNames }
     }
 
     private suspend fun <T> runRequest(

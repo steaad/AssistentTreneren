@@ -52,6 +52,9 @@ class AudioRecordingService : Service() {
         val category = intent.getStringExtra(EXTRA_CATEGORY).orEmpty()
         val subCategory = intent.getStringExtra(EXTRA_SUB_CATEGORY).orEmpty()
         val activityId = intent.getStringExtra(EXTRA_ACTIVITY_ID)
+        val matchPeriod = intent.getStringExtra(EXTRA_MATCH_PERIOD)
+        val matchClockStartMillis = intent.getLongExtra(EXTRA_MATCH_CLOCK_START_MILLIS, -1L)
+            .takeIf { it >= 0L }
 
         if (category.isBlank() || subCategory.isBlank()) {
             stateHolder.update(
@@ -66,6 +69,8 @@ class AudioRecordingService : Service() {
                 category = category,
                 subCategory = subCategory,
                 activityId = activityId,
+                matchPeriod = matchPeriod,
+                matchClockStartMillis = matchClockStartMillis,
             )
             stateHolder.update(
                 RecordingStatus.Recording(
@@ -178,6 +183,8 @@ class AudioRecordingService : Service() {
         private const val EXTRA_CATEGORY = "extra_category"
         private const val EXTRA_SUB_CATEGORY = "extra_sub_category"
         private const val EXTRA_ACTIVITY_ID = "extra_activity_id"
+        private const val EXTRA_MATCH_PERIOD = "extra_match_period"
+        private const val EXTRA_MATCH_CLOCK_START_MILLIS = "extra_match_clock_start_millis"
         private const val CHANNEL_ID = "audio_recording"
         private const val NOTIFICATION_ID = 1101
         private const val CONTENT_REQUEST_CODE = 2101
@@ -188,12 +195,16 @@ class AudioRecordingService : Service() {
             category: String,
             subCategory: String,
             activityId: String?,
+            matchPeriod: String?,
+            matchClockStartMillis: Long?,
         ): Intent =
             Intent(context, AudioRecordingService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_CATEGORY, category)
                 putExtra(EXTRA_SUB_CATEGORY, subCategory)
                 putExtra(EXTRA_ACTIVITY_ID, activityId)
+                putExtra(EXTRA_MATCH_PERIOD, matchPeriod)
+                putExtra(EXTRA_MATCH_CLOCK_START_MILLIS, matchClockStartMillis ?: -1L)
             }
 
         fun stopIntent(context: Context): Intent =

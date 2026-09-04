@@ -66,15 +66,29 @@ class SummaryStepViewModel @Inject constructor(
         }
     }
 
-    fun resolveIssue(issueId: String, input: TranscriptionEventInput) = submit { resolveTranscriptionIssueUseCase(issueId, input) }
-    fun dismissIssue(issueId: String) = submit { dismissTranscriptionIssueUseCase(issueId) }
+    fun resolveIssue(
+        issueId: String,
+        input: TranscriptionEventInput,
+        onSuccess: () -> Unit = {},
+    ) = submit(onSuccess) { resolveTranscriptionIssueUseCase(issueId, input) }
+
+    fun dismissIssue(issueId: String, onSuccess: () -> Unit = {}) =
+        submit(onSuccess) { dismissTranscriptionIssueUseCase(issueId) }
+
     fun updateEvent(eventId: String, input: TranscriptionEventInput) = submit { updateTranscriptionEventUseCase(eventId, input) }
     fun deleteEvent(eventId: String) = submit { deleteTranscriptionEventUseCase(eventId) }
 
-    private fun submit(action: suspend () -> TranscriptionReviewResult<Unit>) = viewModelScope.launch {
+    private fun submit(
+        onSuccess: () -> Unit = {},
+        action: suspend () -> TranscriptionReviewResult<Unit>,
+    ) = viewModelScope.launch {
         _uiState.update { it.copy(isSubmittingTranscriptionAction = true, transcriptionErrorMessage = null) }
         when (val result = action()) {
-            is TranscriptionReviewResult.Success -> { _uiState.update { it.copy(isSubmittingTranscriptionAction = false) }; refreshTranscriptionReview() }
+            is TranscriptionReviewResult.Success -> {
+                _uiState.update { it.copy(isSubmittingTranscriptionAction = false) }
+                onSuccess()
+                refreshTranscriptionReview()
+            }
             is TranscriptionReviewResult.Failure -> _uiState.update { it.copy(isSubmittingTranscriptionAction = false, transcriptionErrorMessage = result.error.message()) }
         }
     }

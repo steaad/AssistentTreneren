@@ -7,12 +7,16 @@ import com.example.assistenttreneren.core.auth.JwtDecoder
 import com.example.assistenttreneren.core.auth.SessionManager
 import com.example.assistenttreneren.core.auth.TokenStorage
 import com.example.assistenttreneren.feature.activitywizard.domain.model.CoachActivity
+import com.example.assistenttreneren.feature.activitywizard.domain.model.MatchRosterSuggestion
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityRepository
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityResult
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.LocalCoachActivityRepository
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.CreateCoachActivityUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetCoachActivitiesUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateCoachActivityUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterSuggestionsUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateMatchRosterUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -49,7 +53,7 @@ class CoachActivityWizardViewModelTest {
 
     @Test
     fun `updates selected existing activity title and navigates`() = runTest {
-        val existing = CoachActivity("activity-1", "Kamp", "Opprinnelig", emptyList())
+        val existing = CoachActivity("activity-1", "Trening", "Opprinnelig", emptyList())
         val repository = FakeCoachActivityRepository(activities = listOf(existing))
         val localRepository = FakeLocalCoachActivityRepository()
         val viewModel = viewModel(repository, localRepository)
@@ -67,6 +71,27 @@ class CoachActivityWizardViewModelTest {
         assertEquals(1, navigateCount)
     }
 
+    @Test
+    fun `loads and applies roster suggestions for a new match`() = runTest {
+        val suggestion = MatchRosterSuggestion(
+            sourceActivityId = "previous-match",
+            title = "G14 mot Nordstrand",
+            playerNames = listOf("Noah", "Olav"),
+        )
+        val viewModel = viewModel(
+            repository = FakeCoachActivityRepository(matchRosterSuggestions = listOf(suggestion)),
+            localRepository = FakeLocalCoachActivityRepository(),
+        )
+
+        viewModel.onCreateNewActivityClicked()
+        viewModel.onActivityCategorySelected("Kamp")
+        runCurrent()
+        viewModel.onMatchRosterSuggestionSelected(suggestion.playerNames)
+
+        assertEquals(listOf(suggestion), viewModel.uiState.value.matchRosterSuggestions)
+        assertEquals(listOf("Noah", "Olav"), viewModel.uiState.value.matchRoster)
+    }
+
     private fun viewModel(
         repository: FakeCoachActivityRepository,
         localRepository: FakeLocalCoachActivityRepository,
@@ -74,12 +99,16 @@ class CoachActivityWizardViewModelTest {
         GetCoachActivitiesUseCase(repository),
         CreateCoachActivityUseCase(repository),
         UpdateCoachActivityUseCase(repository),
+        GetMatchRosterUseCase(repository),
+        GetMatchRosterSuggestionsUseCase(repository),
+        UpdateMatchRosterUseCase(repository),
         localRepository,
         SessionManager(FakeTokenStorage(), JwtDecoder(), FakeTokenRefresher()),
     )
 
     private class FakeCoachActivityRepository(
         private val activities: List<CoachActivity> = emptyList(),
+        private val matchRosterSuggestions: List<MatchRosterSuggestion> = emptyList(),
     ) : CoachActivityRepository {
         var updateTitle: String? = null
         var updateCategory: String? = null
@@ -91,6 +120,9 @@ class CoachActivityWizardViewModelTest {
         }
         override suspend fun getActivities() = CoachActivityResult.Success(activities)
         override suspend fun getActivity(activityId: String) = CoachActivityResult.Success(activities.first { it.activityId == activityId })
+        override suspend fun getMatchRoster(activityId: String) = CoachActivityResult.Success(emptyList<String>())
+        override suspend fun getMatchRosterSuggestions() = CoachActivityResult.Success(matchRosterSuggestions)
+        override suspend fun updateMatchRoster(activityId: String, playerNames: List<String>) = CoachActivityResult.Success(playerNames)
     }
 
     private class FakeLocalCoachActivityRepository : LocalCoachActivityRepository {

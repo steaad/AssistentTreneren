@@ -10,11 +10,15 @@ class StartRecordingUseCase @Inject constructor(
         category: String,
         subCategory: String,
         activityId: String?,
+        matchPeriod: String? = null,
+        matchClockStartMillis: Long? = null,
     ) {
         recordingRepository.startRecording(
             category = category,
             subCategory = subCategory,
             activityId = activityId,
+            matchPeriod = matchPeriod,
+            matchClockStartMillis = matchClockStartMillis,
         )
     }
 }

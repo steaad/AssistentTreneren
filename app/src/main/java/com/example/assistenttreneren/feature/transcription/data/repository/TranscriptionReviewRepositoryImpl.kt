@@ -5,6 +5,7 @@ import com.example.assistenttreneren.feature.transcription.data.mapper.toTranscr
 import com.example.assistenttreneren.feature.transcription.data.remote.TranscriptionReviewApi
 import com.example.assistenttreneren.feature.transcription.domain.model.TranscriptionEventInput
 import com.example.assistenttreneren.feature.transcription.domain.model.TranscriptionReview
+import com.example.assistenttreneren.feature.transcription.domain.model.isValid
 import com.example.assistenttreneren.feature.transcription.domain.repository.TranscriptionReviewError
 import com.example.assistenttreneren.feature.transcription.domain.repository.TranscriptionReviewRepository
 import com.example.assistenttreneren.feature.transcription.domain.repository.TranscriptionReviewResult
@@ -34,7 +35,7 @@ class TranscriptionReviewRepositoryImpl @Inject constructor(
     }
 
     private suspend fun requestUnit(id: String, input: TranscriptionEventInput, block: suspend () -> Unit): TranscriptionReviewResult<Unit> {
-        if (id.isBlank() || input.text.isBlank() || input.startMillis < 0 || input.endMillis < input.startMillis) return TranscriptionReviewResult.Failure(TranscriptionReviewError.InvalidInput)
+        if (id.isBlank() || !input.isValid()) return TranscriptionReviewResult.Failure(TranscriptionReviewError.InvalidInput)
         return request(block)
     }
 

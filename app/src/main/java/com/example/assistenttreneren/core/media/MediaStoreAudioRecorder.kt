@@ -27,6 +27,8 @@ class MediaStoreAudioRecorder @Inject constructor(
         category: String,
         subCategory: String,
         activityId: String?,
+        matchPeriod: String?,
+        matchClockStartMillis: Long?,
     ): ActiveRecording {
         check(mediaRecorder == null) { "Recording is already active." }
 
@@ -53,6 +55,8 @@ class MediaStoreAudioRecorder @Inject constructor(
                 category = category,
                 subCategory = subCategory,
                 startedAtMillis = createdAtMillis,
+                matchPeriod = matchPeriod,
+                matchClockStartMillis = matchClockStartMillis,
             ).also {
                 mediaRecorder = recorder
                 outputFileDescriptor = fileDescriptor
@@ -85,6 +89,8 @@ class MediaStoreAudioRecorder @Inject constructor(
                 category = recording.category,
                 subCategory = recording.subCategory,
                 createdAtMillis = recording.startedAtMillis,
+                matchPeriod = recording.matchPeriod,
+                matchClockStartMillis = recording.matchClockStartMillis,
             )
         } finally {
             recorder.release()
@@ -173,6 +179,8 @@ class MediaStoreAudioRecorder @Inject constructor(
         val category: String,
         val subCategory: String,
         val startedAtMillis: Long,
+        val matchPeriod: String?,
+        val matchClockStartMillis: Long?,
     )
 
     private companion object {

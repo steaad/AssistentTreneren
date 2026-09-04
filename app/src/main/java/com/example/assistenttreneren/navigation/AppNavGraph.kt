@@ -114,11 +114,16 @@ fun AppNavGraph(
                     onTitleChanged = viewModel::onTitleChanged,
                     onActivityCategorySelected = viewModel::onActivityCategorySelected,
                     onExistingActivitySelected = viewModel::onExistingActivitySelected,
+                    onMatchRosterChanged = viewModel::onMatchRosterChanged,
+                    onMatchRosterSuggestionSelected = viewModel::onMatchRosterSuggestionSelected,
+                    onMatchHalfDurationChanged = viewModel::onMatchHalfDurationChanged,
                     onRetryLoadExistingActivitiesClicked = viewModel::onRetryLoadExistingActivitiesClicked,
                     onNavigateBack = navController::popBackStack,
                     onNavigateNext = {
                         viewModel.onContinueFromActivityType {
-                            navController.navigate(Routes.CoachActivityAudioRecording.route)
+                            navController.navigate(Routes.CoachActivityAudioRecording.route) {
+                                launchSingleTop = true
+                            }
                         }
                     },
                 )

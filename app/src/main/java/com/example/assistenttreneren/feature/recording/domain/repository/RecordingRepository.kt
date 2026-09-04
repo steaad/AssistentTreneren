@@ -10,6 +10,8 @@ interface RecordingRepository {
         category: String,
         subCategory: String,
         activityId: String?,
+        matchPeriod: String? = null,
+        matchClockStartMillis: Long? = null,
     )
 
     fun stopRecording()

@@ -7,6 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface CoachActivityApi {
@@ -28,4 +29,23 @@ interface CoachActivityApi {
     suspend fun getActivity(
         @Path("activityId") activityId: String,
     ): CoachActivityDto
+
+    @GET("api/activities/{activityId}/match-roster")
+    suspend fun getMatchRoster(@Path("activityId") activityId: String): MatchRosterDto
+
+    @GET("api/activities/match-roster-suggestions")
+    suspend fun getMatchRosterSuggestions(): List<MatchRosterSuggestionDto>
+
+    @PUT("api/activities/{activityId}/match-roster")
+    suspend fun updateMatchRoster(@Path("activityId") activityId: String, @Body request: MatchRosterDto): MatchRosterDto
 }
+
+@kotlinx.serialization.Serializable
+data class MatchRosterDto(val playerNames: List<String>)
+
+@kotlinx.serialization.Serializable
+data class MatchRosterSuggestionDto(
+    val sourceActivityId: String,
+    val title: String,
+    val playerNames: List<String>,
+)
