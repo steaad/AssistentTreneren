@@ -41,6 +41,7 @@ import com.example.assistenttreneren.feature.activitywizard.presentation.steps.A
 import com.example.assistenttreneren.feature.activitywizard.presentation.steps.AudioRecordingStepScreen
 import com.example.assistenttreneren.feature.activitywizard.presentation.steps.SummaryStepScreen
 import com.example.assistenttreneren.feature.activitywizard.presentation.steps.UploadStepScreen
+import com.example.assistenttreneren.feature.analysis.presentation.AnalysisScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginViewModel
 import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
@@ -187,10 +188,7 @@ fun AppNavGraph(
         }
 
         composable(Routes.Analysis.route) {
-            SimpleDestinationScreen(
-                title = stringResource(R.string.analysis_title),
-                onNavigateBack = navController::popBackStack,
-            )
+            AnalysisScreen(onNavigateBack = navController::popBackStack)
         }
 
         composable(Routes.History.route) {

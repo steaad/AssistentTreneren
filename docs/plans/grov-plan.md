@@ -83,6 +83,8 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [x] Dokumenter minimumsendepunkter for analyse:
   - [x] `GET /api/analyses`
   - [x] `GET /api/analyses/{analysisId}`
+  - [x] `GET /api/activities/analysis-candidates`
+  - [x] `POST /api/activities/{activityId}/analyses`
 - [x] Opprett DTO-er for upload request/response.
 - [x] Opprett DTO-er for upload-status.
 - [x] Opprett DTO-er for analyse-liste og analyse-detalj.
@@ -192,7 +194,7 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [ ] Manuelt verifiser transkripsjonsflyt, observasjonsendringer og avvikshåndtering mot backend.
 - [ ] Lag enkel Historikk-skjerm.
 - [ ] Vis aktiviteter fra lokal cache og backend.
-- [ ] Lag enkel Analyse-liste.
+- [x] Lag enkel Analyse-liste med aktivitetsvalg, status og polling.
 - [ ] Lag enkel Analyse-detaljvisning.
 - [ ] Presenter strukturert analyse uten å hardkode én analyseform for tidlig.
 
