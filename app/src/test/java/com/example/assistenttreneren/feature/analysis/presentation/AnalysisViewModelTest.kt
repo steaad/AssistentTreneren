@@ -82,6 +82,21 @@ class AnalysisViewModelTest {
         assertTrue(viewModel.uiState.value.candidates.isNotEmpty())
     }
 
+    @Test
+    fun `keeps completed analyses out of activity chooser and in recent analyses`() = runTest {
+        val ready = candidate(activityId = "ready")
+        val completed = candidate(
+            activityId = "completed",
+            state = AnalysisCandidateState.COMPLETED,
+            latestAnalysis = analysisJob(status = AnalysisJobStatus.COMPLETED),
+        )
+        val viewModel = viewModel(FakeAnalysisWorkflowRepository(candidates = listOf(completed, ready)))
+        runCurrent()
+
+        assertEquals(listOf("ready"), viewModel.uiState.value.candidates.map { it.activityId })
+        assertEquals(listOf("completed"), viewModel.uiState.value.completedAnalyses.map { it.activityId })
+    }
+
     private fun viewModel(repository: AnalysisWorkflowRepository) = AnalysisViewModel(
         GetAnalysisCandidatesUseCase(repository),
         StartAnalysisUseCase(repository),
@@ -113,12 +128,13 @@ class AnalysisViewModelTest {
         fun candidate(
             activityId: String = "activity-1",
             state: AnalysisCandidateState = AnalysisCandidateState.READY,
+            latestAnalysis: AnalysisJob? = null,
         ) = AnalysisCandidate(
             activityId = activityId,
             title = "Kamp mot Nordstrand",
             state = state,
             message = "Klar for analyse",
-            latestAnalysis = null,
+            latestAnalysis = latestAnalysis,
         )
 
         fun analysisJob(status: AnalysisJobStatus = AnalysisJobStatus.QUEUED) = AnalysisJob(

@@ -7,6 +7,7 @@ import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJobSt
 data class AnalysisUiState(
     val isLoadingCandidates: Boolean = false,
     val candidates: List<AnalysisCandidate> = emptyList(),
+    val completedAnalyses: List<AnalysisCandidate> = emptyList(),
     val selectedActivityId: String? = null,
     val isStartingAnalysis: Boolean = false,
     val activeAnalysis: AnalysisJob? = null,

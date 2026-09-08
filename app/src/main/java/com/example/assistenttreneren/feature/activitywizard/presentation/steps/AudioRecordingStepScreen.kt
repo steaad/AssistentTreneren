@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Timer
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Button
@@ -40,6 +43,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -107,6 +111,7 @@ fun AudioRecordingStepScreen(
     var matchPeriodStartedAtMatchClockMillis by rememberSaveable { mutableLongStateOf(0L) }
     var showStopMatchClockDialog by rememberSaveable { mutableStateOf(false) }
     var isVideoPreviewExpanded by rememberSaveable { mutableStateOf(false) }
+    var showEventRegistrationTips by rememberSaveable { mutableStateOf(false) }
 
     fun currentMatchClockMillis(): Long? = matchClockStartedAtMillis?.let { startedAt ->
         (System.currentTimeMillis() - startedAt).coerceAtLeast(0L)
@@ -176,6 +181,16 @@ fun AudioRecordingStepScreen(
             matchClockElapsedMillis == 0L,
         isNextEnabled = !recordingUiState.isRecording,
         contentFillsAvailableSpace = recordingUiState.selectedMediaType == RecordingMediaType.Video,
+        titleTrailingContent = {
+            TextButton(onClick = { showEventRegistrationTips = true }) {
+                Icon(
+                    imageVector = Icons.Outlined.Lightbulb,
+                    contentDescription = stringResource(R.string.recording_event_tips_content_description),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.recording_event_tips_label))
+            }
+        },
     ) {
         Column(
             modifier = if (recordingUiState.selectedMediaType == RecordingMediaType.Video) {
@@ -345,6 +360,57 @@ fun AudioRecordingStepScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (showEventRegistrationTips) {
+        EventRegistrationTipsDialog(onDismiss = { showEventRegistrationTips = false })
+    }
+}
+
+@Composable
+private fun EventRegistrationTipsDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.recording_event_tips_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.recording_event_tips_intro))
+                EventRegistrationTip(
+                    title = stringResource(R.string.recording_event_tips_lineup_title),
+                    example = stringResource(R.string.recording_event_tips_lineup_example),
+                )
+                EventRegistrationTip(
+                    title = stringResource(R.string.recording_event_tips_observation_title),
+                    example = stringResource(R.string.recording_event_tips_observation_example),
+                )
+                EventRegistrationTip(
+                    title = stringResource(R.string.recording_event_tips_substitution_title),
+                    example = stringResource(R.string.recording_event_tips_substitution_example),
+                )
+                EventRegistrationTip(
+                    title = stringResource(R.string.recording_event_tips_stat_title),
+                    example = stringResource(R.string.recording_event_tips_stat_example),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.recording_event_tips_close))
+            }
+        },
+    )
+}
+
+@Composable
+private fun EventRegistrationTip(title: String, example: String) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(example, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

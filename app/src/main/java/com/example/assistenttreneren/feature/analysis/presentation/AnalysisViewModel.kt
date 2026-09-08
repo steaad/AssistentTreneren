@@ -96,7 +96,10 @@ class AnalysisViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingCandidates = true) }
             when (val result = getAnalysisCandidates()) {
                 is AnalysisWorkflowResult.Success -> {
-                    val candidates = result.data
+                    val completedAnalyses = result.data
+                        .filter { it.hasCompletedAnalysis() }
+                        .sortedByDescending { it.latestAnalysis?.completedAt ?: it.latestAnalysis?.createdAt }
+                    val candidates = result.data.filterNot { it.hasCompletedAnalysis() }
                     val currentSelection = _uiState.value.selectedActivityId
                     val selectedActivityId = currentSelection.takeIf { selectedId ->
                         candidates.any { it.activityId == selectedId }
@@ -105,6 +108,7 @@ class AnalysisViewModel @Inject constructor(
                         it.copy(
                             isLoadingCandidates = false,
                             candidates = candidates,
+                            completedAnalyses = completedAnalyses,
                             selectedActivityId = selectedActivityId,
                             errorMessage = errorMessage,
                         )
@@ -202,3 +206,6 @@ class AnalysisViewModel @Inject constructor(
         const val POLL_INTERVAL_MILLIS = 2_500L
     }
 }
+
+private fun com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidate.hasCompletedAnalysis(): Boolean =
+    latestAnalysis?.status == AnalysisJobStatus.COMPLETED || state == AnalysisCandidateState.COMPLETED

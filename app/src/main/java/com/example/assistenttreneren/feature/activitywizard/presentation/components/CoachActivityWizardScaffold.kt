@@ -3,6 +3,7 @@ package com.example.assistenttreneren.feature.activitywizard.presentation.compon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,7 @@ fun CoachActivityWizardScaffold(
     isNextEnabled: Boolean = true,
     nextButtonText: String = stringResource(R.string.wizard_next_button),
     contentFillsAvailableSpace: Boolean = false,
+    titleTrailingContent: @Composable (RowScope.() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
@@ -59,10 +61,17 @@ fun CoachActivityWizardScaffold(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                titleTrailingContent?.invoke(this)
+            }
 
             Column(
                 modifier = Modifier

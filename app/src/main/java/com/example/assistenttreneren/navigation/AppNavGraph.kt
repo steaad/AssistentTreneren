@@ -3,14 +3,22 @@ package com.example.assistenttreneren.navigation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.SportsSoccer
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -22,17 +30,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.assistenttreneren.R
 import com.example.assistenttreneren.core.auth.SessionState
@@ -42,6 +53,8 @@ import com.example.assistenttreneren.feature.activitywizard.presentation.steps.A
 import com.example.assistenttreneren.feature.activitywizard.presentation.steps.SummaryStepScreen
 import com.example.assistenttreneren.feature.activitywizard.presentation.steps.UploadStepScreen
 import com.example.assistenttreneren.feature.analysis.presentation.AnalysisScreen
+import com.example.assistenttreneren.feature.analysis.presentation.AnalysisResultScreen
+import com.example.assistenttreneren.feature.analysis.presentation.AnalysisHistoryScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginViewModel
 import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
@@ -188,13 +201,27 @@ fun AppNavGraph(
         }
 
         composable(Routes.Analysis.route) {
-            AnalysisScreen(onNavigateBack = navController::popBackStack)
+            AnalysisScreen(
+                onNavigateBack = navController::popBackStack,
+                onShowAnalysis = { analysisId ->
+                    navController.navigate(Routes.AnalysisResult.createRoute(analysisId))
+                },
+            )
+        }
+
+        composable(
+            route = Routes.AnalysisResult.route,
+            arguments = listOf(navArgument("analysisId") { type = NavType.StringType }),
+        ) {
+            AnalysisResultScreen(onNavigateBack = navController::popBackStack)
         }
 
         composable(Routes.History.route) {
-            SimpleDestinationScreen(
-                title = stringResource(R.string.history_title),
+            AnalysisHistoryScreen(
                 onNavigateBack = navController::popBackStack,
+                onShowAnalysis = { analysisId ->
+                    navController.navigate(Routes.AnalysisResult.createRoute(analysisId))
+                },
             )
         }
     }
@@ -258,16 +285,19 @@ private fun HomeScreen(
 
             HomeNavigationTile(
                 title = stringResource(R.string.coach_activity_title),
+                icon = Icons.Outlined.SportsSoccer,
                 onClick = onCoachActivityClicked,
             )
 
             HomeNavigationTile(
                 title = stringResource(R.string.analysis_title),
+                icon = Icons.Outlined.Insights,
                 onClick = onAnalysisClicked,
             )
 
             HomeNavigationTile(
                 title = stringResource(R.string.history_title),
+                icon = Icons.Outlined.History,
                 onClick = onHistoryClicked,
             )
 
@@ -287,6 +317,7 @@ private fun HomeScreen(
 @Composable
 private fun HomeNavigationTile(
     title: String,
+    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -303,17 +334,23 @@ private fun HomeNavigationTile(
                 containerColor = MaterialTheme.colorScheme.surface,
             ),
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
             ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp),
+                )
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start,
                 )
             }
         }

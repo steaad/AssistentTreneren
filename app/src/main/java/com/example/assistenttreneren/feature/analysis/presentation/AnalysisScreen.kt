@@ -1,6 +1,8 @@
 package com.example.assistenttreneren.feature.analysis.presentation
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,7 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -43,11 +48,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidate
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidateState
+import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJobStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalysisScreen(
     onNavigateBack: () -> Unit,
+    onShowAnalysis: (String) -> Unit,
     viewModel: AnalysisViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
 ) {
@@ -82,7 +89,7 @@ fun AnalysisScreen(
             uiState = uiState,
             onChooseActivity = { showActivityPicker = true },
             onGenerateAnalysis = viewModel::startSelectedAnalysis,
-            onShowAnalysis = viewModel::loadCompletedAnalysis,
+            onShowAnalysis = onShowAnalysis,
             modifier = Modifier.padding(paddingValues),
         )
     }
@@ -90,10 +97,12 @@ fun AnalysisScreen(
     if (showActivityPicker) {
         ActivityPickerDialog(
             candidates = uiState.candidates,
+            isLoading = uiState.isLoadingCandidates,
             onSelected = {
                 viewModel.onActivitySelected(it)
                 showActivityPicker = false
             },
+            onRefresh = viewModel::refreshCandidates,
             onDismiss = { showActivityPicker = false },
         )
     }
@@ -104,24 +113,24 @@ private fun AnalysisContent(
     uiState: AnalysisUiState,
     onChooseActivity: () -> Unit,
     onGenerateAnalysis: () -> Unit,
-    onShowAnalysis: () -> Unit,
+    onShowAnalysis: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(Modifier.height(4.dp))
         Text("Velg aktivitet", style = MaterialTheme.typography.titleMedium)
         OutlinedButton(
             onClick = onChooseActivity,
-            enabled = uiState.candidates.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = uiState.selectedCandidate?.title ?: "Velg en aktivitet",
+                text = uiState.selectedCandidate?.title ?: "Velg eller oppdater aktivitet",
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -140,7 +149,9 @@ private fun AnalysisContent(
         val selectedCandidate = uiState.selectedCandidate
         if (selectedCandidate != null) {
             val candidate = selectedCandidate
-            CandidateStatusCard(candidate)
+            val displayedAnalysis = uiState.activeAnalysis ?: candidate.latestAnalysis
+            CandidateStatusCard(candidate, displayedAnalysis)
+            displayedAnalysis?.let { AnalysisMetadataCard(it) }
             AnalysisAction(
                 uiState = uiState,
                 candidate = candidate,
@@ -159,34 +170,41 @@ private fun AnalysisContent(
             )
         }
 
-        uiState.completedAnalysis?.let { analysis ->
-            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text("Analyse klar", fontWeight = FontWeight.SemiBold)
-                    Text(
-                        if (analysis.result == null) {
-                            "Analysen er fullført. Resultatvisningen bygges i neste steg."
-                        } else {
-                            "Analysen er fullført og klar for resultatvisning."
-                        },
-                    )
-                }
-            }
+        if (uiState.completedAnalyses.isNotEmpty()) {
+            Text("Siste analyser", style = MaterialTheme.typography.titleMedium)
+            CompletedAnalysisList(
+                analyses = uiState.completedAnalyses.take(RECENT_ANALYSIS_LIMIT),
+                onAnalysisSelected = onShowAnalysis,
+                emptyMessage = "",
+            )
         }
+
     }
 }
 
 @Composable
-private fun CandidateStatusCard(candidate: AnalysisCandidate) {
+private fun CandidateStatusCard(
+    candidate: AnalysisCandidate,
+    analysis: com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob?,
+) {
+    val isProcessing = analysis?.status in setOf(
+        AnalysisJobStatus.QUEUED,
+        AnalysisJobStatus.PROCESSING,
+    ) || candidate.state == AnalysisCandidateState.PROCESSING
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(candidate.state.toDisplayText(), fontWeight = FontWeight.SemiBold)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isProcessing) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                }
+                Text(candidate.displayStatus(analysis), fontWeight = FontWeight.SemiBold)
+            }
             Text(candidate.message)
         }
     }
@@ -197,18 +215,25 @@ private fun AnalysisAction(
     uiState: AnalysisUiState,
     candidate: AnalysisCandidate,
     onGenerateAnalysis: () -> Unit,
-    onShowAnalysis: () -> Unit,
+    onShowAnalysis: (String) -> Unit,
 ) {
+    val latestStatus = candidate.latestAnalysis?.status
     when {
-        uiState.isAnalysisInProgress || uiState.isStartingAnalysis -> {
-            Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("Analyse pågår …")
+        latestStatus == AnalysisJobStatus.COMPLETED -> {
+            Button(
+                onClick = { candidate.latestAnalysis?.analysisId?.let(onShowAnalysis) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Se analyse")
             }
         }
 
-        candidate.state == AnalysisCandidateState.COMPLETED -> {
-            Button(onClick = onShowAnalysis, modifier = Modifier.fillMaxWidth()) {
-                Text("Se analyse")
+        uiState.isAnalysisInProgress || uiState.isStartingAnalysis ||
+            latestStatus in setOf(AnalysisJobStatus.QUEUED, AnalysisJobStatus.PROCESSING) -> {
+            Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Analyse pågår …")
             }
         }
 
@@ -229,30 +254,42 @@ private fun AnalysisAction(
 @Composable
 private fun ActivityPickerDialog(
     candidates: List<AnalysisCandidate>,
+    isLoading: Boolean,
     onSelected: (String) -> Unit,
+    onRefresh: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Velg aktivitet") },
         text = {
-            LazyColumn(contentPadding = PaddingValues(vertical = 4.dp)) {
-                items(candidates, key = { it.activityId }) { candidate ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelected(candidate.activityId) }
-                            .padding(vertical = 12.dp),
-                    ) {
-                        Text(candidate.title ?: "Uten tittel", fontWeight = FontWeight.Medium)
-                        Text(candidate.state.toDisplayText(), style = MaterialTheme.typography.bodySmall)
+            if (candidates.isEmpty()) {
+                Text(if (isLoading) "Henter aktiviteter …" else "Ingen analyseaktiviteter ble funnet.")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 360.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                ) {
+                    items(candidates, key = { it.activityId }) { candidate ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelected(candidate.activityId) }
+                                .padding(vertical = 12.dp),
+                        ) {
+                            Text(candidate.title ?: "Uten tittel", fontWeight = FontWeight.Medium)
+                            Text(candidate.displayStatus(), style = MaterialTheme.typography.bodySmall)
+                        }
+                        HorizontalDivider()
                     }
-                    HorizontalDivider()
                 }
             }
         },
         confirmButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Lukk") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onRefresh, enabled = !isLoading) { Text("Oppdater") }
+                OutlinedButton(onClick = onDismiss) { Text("Lukk") }
+            }
         },
     )
 }
@@ -260,9 +297,21 @@ private fun ActivityPickerDialog(
 private fun AnalysisCandidateState.toDisplayText(): String =
     when (this) {
         AnalysisCandidateState.READY -> "Klar for analyse"
+        AnalysisCandidateState.NO_AUDIO_RECORDINGS -> "Ingen lydopptak tilgjengelig for analyse"
         AnalysisCandidateState.TRANSCRIPTION_PENDING -> "Transkripsjon pågår"
         AnalysisCandidateState.REVIEW_REQUIRED -> "Trenger gjennomgang"
         AnalysisCandidateState.INPUT_INVALID -> "Ugyldig grunnlag"
         AnalysisCandidateState.PROCESSING -> "Analyse pågår"
         AnalysisCandidateState.COMPLETED -> "Analyse fullført"
+    }
+
+private fun AnalysisCandidate.displayStatus(
+    analysis: com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob? = latestAnalysis,
+): String =
+    when (analysis?.status) {
+        AnalysisJobStatus.QUEUED -> "Analyse er køet"
+        AnalysisJobStatus.PROCESSING -> "Analyse pågår"
+        AnalysisJobStatus.COMPLETED -> "Analyse fullført"
+        AnalysisJobStatus.FAILED -> "Analyse feilet"
+        null -> state.toDisplayText()
     }

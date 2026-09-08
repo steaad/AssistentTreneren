@@ -195,8 +195,8 @@ Dette dokumentet beskriver neste MVP-fase for Android-appen. Planen skal brukes 
 - [ ] Lag enkel Historikk-skjerm.
 - [ ] Vis aktiviteter fra lokal cache og backend.
 - [x] Lag enkel Analyse-liste med aktivitetsvalg, status og polling.
-- [ ] Lag enkel Analyse-detaljvisning.
-- [ ] Presenter strukturert analyse uten å hardkode én analyseform for tidlig.
+- [x] Lag Analyse-detaljvisning for kampanalyse.
+- [x] Presenter strukturert kampanalyse med en trygg reservevisning for fremtidige analyseformer.
 
 ## 8. Testing og verifikasjon
 

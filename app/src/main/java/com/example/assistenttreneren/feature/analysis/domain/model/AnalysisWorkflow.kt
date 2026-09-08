@@ -2,7 +2,15 @@ package com.example.assistenttreneren.feature.analysis.domain.model
 
 import kotlinx.serialization.json.JsonElement
 
-enum class AnalysisCandidateState { READY, TRANSCRIPTION_PENDING, REVIEW_REQUIRED, INPUT_INVALID, PROCESSING, COMPLETED }
+enum class AnalysisCandidateState {
+    READY,
+    NO_AUDIO_RECORDINGS,
+    TRANSCRIPTION_PENDING,
+    REVIEW_REQUIRED,
+    INPUT_INVALID,
+    PROCESSING,
+    COMPLETED,
+}
 enum class AnalysisJobStatus { QUEUED, PROCESSING, COMPLETED, FAILED }
 
 data class AnalysisCandidate(
@@ -24,4 +32,13 @@ data class AnalysisJob(
     val completedAt: String?,
     val errorMessage: String?,
     val result: JsonElement?,
+    val activityCategory: String? = null,
+    val startedAt: String? = null,
+    val processingDurationMillis: Long? = null,
+    val dataBasis: AnalysisDataBasis? = null,
+)
+
+data class AnalysisDataBasis(
+    val recordingCount: Int,
+    val eventCount: Int,
 )

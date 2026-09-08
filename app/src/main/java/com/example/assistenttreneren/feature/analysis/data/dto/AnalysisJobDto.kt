@@ -15,7 +15,7 @@ data class AnalysisCandidateDto(
 @Serializable
 data class AnalysisJobDto(
     val analysisId: String,
-    val activityId: String,
+    val activityId: String? = null,
     val status: String,
     val schemaVersion: String,
     val promptVersion: String,
@@ -25,4 +25,13 @@ data class AnalysisJobDto(
     val completedAt: String? = null,
     val errorMessage: String? = null,
     val result: JsonElement? = null,
+    val activityCategory: String? = null,
+    val processingDurationMillis: Long? = null,
+    val dataBasis: AnalysisDataBasisDto? = null,
+)
+
+@Serializable
+data class AnalysisDataBasisDto(
+    val recordingCount: Int,
+    val eventCount: Int,
 )
