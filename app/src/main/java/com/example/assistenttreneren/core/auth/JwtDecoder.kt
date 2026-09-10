@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.contentOrNull
 
 @Singleton
 class JwtDecoder @Inject constructor() {
@@ -15,6 +16,20 @@ class JwtDecoder @Inject constructor() {
         val expiresAtSeconds = getExpiresAtSeconds(token) ?: return true
         val currentTimeSeconds = currentTimeMillis / MILLIS_PER_SECOND
         return expiresAtSeconds <= currentTimeSeconds
+    }
+
+    fun getRole(token: String): UserRole? {
+        val payload = token.split(".").getOrNull(PAYLOAD_INDEX) ?: return null
+        val decodedPayload = decodePayload(payload) ?: return null
+        val jsonObject = runCatching {
+            Json.parseToJsonElement(decodedPayload).jsonObject
+        }.getOrNull() ?: return null
+
+        return when (jsonObject[ROLE_CLAIM]?.jsonPrimitive?.contentOrNull) {
+            UserRole.ADMINISTRATOR.name -> UserRole.ADMINISTRATOR
+            UserRole.TRAINER.name -> UserRole.TRAINER
+            else -> null
+        }
     }
 
     private fun getExpiresAtSeconds(token: String): Long? {
@@ -36,6 +51,7 @@ class JwtDecoder @Inject constructor() {
     private companion object {
         const val PAYLOAD_INDEX = 1
         const val EXPIRES_AT_CLAIM = "exp"
+        const val ROLE_CLAIM = "role"
         const val MILLIS_PER_SECOND = 1_000L
     }
 }

@@ -3,6 +3,7 @@ package com.example.assistenttreneren.feature.login.data.repository
 import com.example.assistenttreneren.core.auth.AuthTokens
 import com.example.assistenttreneren.core.auth.TokenStorage
 import com.example.assistenttreneren.feature.login.data.dto.LoginRequestDto
+import com.example.assistenttreneren.feature.login.data.dto.ChangeInitialPasswordRequestDto
 import com.example.assistenttreneren.feature.login.data.dto.RefreshTokenRequestDto
 import com.example.assistenttreneren.feature.login.data.mapper.toAuthTokens
 import com.example.assistenttreneren.feature.login.data.remote.AuthApi
@@ -86,6 +87,39 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun changeInitialPassword(
+        email: String,
+        temporaryPassword: String,
+        newPassword: String,
+    ): AuthResult<AuthTokens> = withContext(Dispatchers.IO) {
+        try {
+            val tokens = authApi.changeInitialPassword(
+                ChangeInitialPasswordRequestDto(
+                    email = email.trim(),
+                    temporaryPassword = temporaryPassword,
+                    newPassword = newPassword,
+                ),
+            ).toAuthTokens()
+
+            if (!tokens.isValid()) {
+                return@withContext AuthResult.Failure(AuthError.InvalidServerResponse)
+            }
+
+            tokenStorage.saveTokens(tokens)
+            AuthResult.Success(tokens)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: HttpException) {
+            AuthResult.Failure(exception.toAuthError())
+        } catch (exception: IOException) {
+            AuthResult.Failure(AuthError.NetworkUnavailable)
+        } catch (exception: SerializationException) {
+            AuthResult.Failure(AuthError.InvalidServerResponse)
+        } catch (exception: Exception) {
+            AuthResult.Failure(AuthError.Unexpected(exception.message))
+        }
+    }
+
     private fun AuthTokens.isValid(): Boolean =
         accessToken.isNotBlank() &&
             refreshToken.isNotBlank() &&
@@ -93,7 +127,9 @@ class AuthRepositoryImpl @Inject constructor(
 
     private fun HttpException.toAuthError(): AuthError =
         when (code()) {
-            400, 401, 403 -> AuthError.InvalidCredentials
+            409 -> AuthError.PasswordChangeRequired
+            400 -> AuthError.ValidationError
+            401, 403 -> AuthError.InvalidCredentials
             in 500..599 -> AuthError.ServerError(code())
             else -> AuthError.Unexpected(message())
         }

@@ -43,6 +43,7 @@ import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
 fun LoginScreen(
     viewModel: LoginViewModel,
     onLoginSuccess: (isBackendBypass: Boolean) -> Unit,
+    onInitialPasswordChangeRequired: () -> Unit,
     modifier: Modifier = Modifier,
     sessionMessage: String? = null,
 ) {
@@ -53,6 +54,13 @@ fun LoginScreen(
             val isBackendBypass = uiState.isBackendBypassLogin
             viewModel.consumeLoginSuccess()
             onLoginSuccess(isBackendBypass)
+        }
+    }
+
+    LaunchedEffect(uiState.isInitialPasswordChangeRequired) {
+        if (uiState.isInitialPasswordChangeRequired) {
+            viewModel.consumeInitialPasswordChangeRequired()
+            onInitialPasswordChangeRequired()
         }
     }
 
@@ -243,6 +251,7 @@ private fun LoginError.asMessage(): String =
         LoginError.InvalidCredentials -> stringResource(R.string.login_error_invalid_credentials)
         LoginError.NetworkUnavailable -> stringResource(R.string.login_error_network_unavailable)
         LoginError.InvalidServerResponse -> stringResource(R.string.login_error_invalid_server_response)
+        LoginError.ValidationError -> stringResource(R.string.login_error_validation)
         is LoginError.ServerError -> stringResource(R.string.login_error_server, code)
         LoginError.Unexpected -> stringResource(R.string.login_error_unexpected)
     }

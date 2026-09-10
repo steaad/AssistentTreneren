@@ -9,4 +9,10 @@ interface AuthRepository {
     ): AuthResult<AuthTokens>
 
     suspend fun refreshTokens(): AuthResult<AuthTokens>
+
+    suspend fun changeInitialPassword(
+        email: String,
+        temporaryPassword: String,
+        newPassword: String,
+    ): AuthResult<AuthTokens>
 }

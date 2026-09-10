@@ -12,6 +12,9 @@ sealed interface AuthResult<out T> {
 
 sealed interface AuthError {
     data object InvalidCredentials : AuthError
+    data object PasswordChangeRequired : AuthError
+    data object PasswordMustDiffer : AuthError
+    data object ValidationError : AuthError
     data object NetworkUnavailable : AuthError
     data object InvalidServerResponse : AuthError
 

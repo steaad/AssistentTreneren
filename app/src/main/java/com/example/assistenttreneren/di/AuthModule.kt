@@ -12,6 +12,8 @@ import com.example.assistenttreneren.core.auth.TokenStorage
 import com.example.assistenttreneren.feature.login.data.repository.AuthTokenRefresherImpl
 import com.example.assistenttreneren.feature.login.data.repository.AuthRepositoryImpl
 import com.example.assistenttreneren.feature.login.domain.repository.AuthRepository
+import com.example.assistenttreneren.feature.settings.data.repository.UserManagementRepositoryImpl
+import com.example.assistenttreneren.feature.settings.domain.repository.UserManagementRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -39,6 +41,11 @@ abstract class AuthModule {
     abstract fun bindAuthTokenRefresher(
         authTokenRefresherImpl: AuthTokenRefresherImpl,
     ): AuthTokenRefresher
+
+    @Binds
+    abstract fun bindUserManagementRepository(
+        userManagementRepositoryImpl: UserManagementRepositoryImpl,
+    ): UserManagementRepository
 
     companion object {
         @Provides

@@ -8,6 +8,8 @@ sealed class Routes(
     data object Loading : Routes("loading")
     data object Login : Routes("login")
     data object Home : Routes("home")
+    data object InitialPassword : Routes("initial_password")
+    data object Settings : Routes("settings")
     data object CoachActivity : Routes("coach_activity")
     data object CoachActivityType : Routes("coach_activity/activity_type")
     data object CoachActivityAudioRecording : Routes("coach_activity/audio_recording")

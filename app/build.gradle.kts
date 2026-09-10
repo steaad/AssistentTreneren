@@ -22,7 +22,30 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "BASE_URL", "\"http://localhost:8080/\"")
+    }
+
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"${providers.gradleProperty("DEV_BASE_URL").orElse("http://10.0.2.2:8080/").get()}\"",
+            )
+        }
+
+        create("prod") {
+            dimension = "environment"
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"https://api-production-6bd4.up.railway.app/\"",
+            )
+        }
     }
 
     buildTypes {

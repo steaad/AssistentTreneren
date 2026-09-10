@@ -3,6 +3,7 @@ package com.example.assistenttreneren.feature.login.data.repository
 import com.example.assistenttreneren.core.auth.AuthTokens
 import com.example.assistenttreneren.core.auth.TokenStorage
 import com.example.assistenttreneren.feature.login.data.dto.LoginRequestDto
+import com.example.assistenttreneren.feature.login.data.dto.ChangeInitialPasswordRequestDto
 import com.example.assistenttreneren.feature.login.data.dto.LoginResponseDto
 import com.example.assistenttreneren.feature.login.data.dto.RefreshTokenRequestDto
 import com.example.assistenttreneren.feature.login.data.remote.AuthApi
@@ -69,6 +70,14 @@ class AuthRepositoryImplTest {
             refreshRequest = request
             return refreshResponse
         }
+
+        override suspend fun changeInitialPassword(
+            request: ChangeInitialPasswordRequestDto,
+        ): LoginResponseDto = LoginResponseDto(
+            accessToken = "access",
+            refreshToken = "refresh",
+            expiresIn = 3600,
+        )
     }
 
     private class FakeTokenStorage(

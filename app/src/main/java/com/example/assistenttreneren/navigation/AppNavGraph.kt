@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.SportsSoccer
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,6 +60,8 @@ import com.example.assistenttreneren.feature.analysis.presentation.AnalysisResul
 import com.example.assistenttreneren.feature.analysis.presentation.AnalysisHistoryScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginScreen
 import com.example.assistenttreneren.feature.login.presentation.LoginViewModel
+import com.example.assistenttreneren.feature.login.presentation.InitialPasswordScreen
+import com.example.assistenttreneren.feature.settings.presentation.SettingsScreen
 import com.example.assistenttreneren.ui.theme.AssistentTrenerenTheme
 
 @Composable
@@ -86,10 +91,23 @@ fun AppNavGraph(
             LoginScreen(
                 viewModel = loginViewModel,
                 onLoginSuccess = onLoginSuccess,
+                onInitialPasswordChangeRequired = { navController.navigate(Routes.InitialPassword.route) },
                 sessionMessage = if (sessionState == SessionState.SessionExpired) {
                     sessionExpiredMessage
                 } else {
                     null
+                },
+            )
+        }
+
+        composable(Routes.InitialPassword.route) {
+            InitialPasswordScreen(
+                viewModel = loginViewModel,
+                onPasswordChanged = {
+                    onLoginSuccess(false)
+                    navController.navigate(Routes.Home.route) {
+                        popUpTo(Routes.Login.route) { inclusive = true }
+                    }
                 },
             )
         }
@@ -106,6 +124,15 @@ fun AppNavGraph(
                     navController.navigate(Routes.History.route)
                 },
                 onLogoutClicked = onLogoutClicked,
+                onSettingsClicked = { navController.navigate(Routes.Settings.route) },
+            )
+        }
+
+        composable(Routes.Settings.route) {
+            SettingsScreen(
+                viewModel = hiltViewModel(),
+                onNavigateBack = navController::popBackStack,
+                onUnauthorized = onLogoutClicked,
             )
         }
 
@@ -271,9 +298,24 @@ private fun HomeScreen(
     onAnalysisClicked: () -> Unit,
     onHistoryClicked: () -> Unit,
     onLogoutClicked: () -> Unit,
+    onSettingsClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = onSettingsClicked) {
+                    Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings_content_description))
+                }
+            }
+        },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -281,7 +323,7 @@ private fun HomeScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(modifier = Modifier.height(88.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             HomeNavigationTile(
                 title = stringResource(R.string.coach_activity_title),
@@ -408,6 +450,7 @@ private fun HomeScreenPreview() {
             onAnalysisClicked = {},
             onHistoryClicked = {},
             onLogoutClicked = {},
+            onSettingsClicked = {},
         )
     }
 }
