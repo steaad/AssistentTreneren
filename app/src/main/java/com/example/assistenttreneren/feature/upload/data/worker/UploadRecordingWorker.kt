@@ -2,6 +2,7 @@ package com.example.assistenttreneren.feature.upload.data.worker
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -22,6 +23,7 @@ import kotlinx.coroutines.delay
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import retrofit2.HttpException
+import org.json.JSONObject
 
 @HiltWorker
 class UploadRecordingWorker @AssistedInject constructor(
@@ -53,6 +55,7 @@ class UploadRecordingWorker @AssistedInject constructor(
         localUploadRepository.saveUploadJob(startedJob)
 
         return try {
+            val (matchPeriod, matchClockStartMillis) = recording.uploadMatchClockMetadata()
             val metadata = UploadRecordingMetadataDto(
                 recordingId = recording.recordingId,
                 filename = recording.displayName,
@@ -62,8 +65,8 @@ class UploadRecordingWorker @AssistedInject constructor(
                 createdAtMillis = recording.createdAtMillis,
                 mediaType = recording.mediaType.name,
                 mimeType = recording.mimeType,
-                matchPeriod = recording.matchPeriod,
-                matchClockStartMillis = recording.matchClockStartMillis,
+                matchPeriod = matchPeriod,
+                matchClockStartMillis = matchClockStartMillis,
             )
             val uploadWithBackendId = createUploadIfNeeded(
                 uploadJob = startedJob,
@@ -96,7 +99,9 @@ class UploadRecordingWorker @AssistedInject constructor(
         } catch (exception: IOException) {
             failUpload(startedJob, "Nettverksfeil under opplasting.")
         } catch (exception: HttpException) {
-            failUpload(startedJob, "Serverfeil under opplasting (${exception.code()}).")
+            val backendMessage = exception.uploadErrorMessage()
+            Log.w(UPLOAD_LOG_TAG, "Opplasting feilet med HTTP ${exception.code()}: $backendMessage")
+            failUpload(startedJob, "Serverfeil under opplasting (${exception.code()}): $backendMessage")
         } catch (exception: Exception) {
             failUpload(startedJob, exception.message ?: "Kunne ikke laste opp opptaket.")
         }
@@ -200,11 +205,31 @@ class UploadRecordingWorker @AssistedInject constructor(
     private val UploadStatus.isTerminal: Boolean
         get() = this == UploadStatus.Completed || this == UploadStatus.Failed
 
+    private fun RecordingSession.uploadMatchClockMetadata(): Pair<String?, Long?> =
+        if (category == "Kamp" && subCategory in MATCH_PERIOD_SUBCATEGORIES) {
+            matchPeriod to matchClockStartMillis
+        } else {
+            null to null
+        }
+
+    private fun HttpException.uploadErrorMessage(): String {
+        val responseBody = response()?.errorBody()?.string().orEmpty()
+        if (responseBody.isBlank()) return message()
+        return runCatching {
+            val json = JSONObject(responseBody)
+            val code = json.optString("code")
+            val message = json.optString("message")
+            listOf(code, message).filter { it.isNotBlank() }.joinToString(": ").ifBlank { responseBody }
+        }.getOrDefault(responseBody)
+    }
+
     companion object {
         const val KEY_UPLOAD_JOB_ID = "upload_job_id"
 
         private const val MEDIA_PART_NAME = "media"
         private const val MAX_STATUS_POLLS = 12
         private const val STATUS_POLL_DELAY_MILLIS = 2_500L
+        private const val UPLOAD_LOG_TAG = "UploadRecording"
+        private val MATCH_PERIOD_SUBCATEGORIES = setOf("1.omgang", "2.omgang")
     }
 }

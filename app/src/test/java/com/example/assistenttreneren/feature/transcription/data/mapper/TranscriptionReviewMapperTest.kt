@@ -16,6 +16,8 @@ class TranscriptionReviewMapperTest {
     fun `maps typed events and issues from review response`() {
         val review = TranscriptionReviewDto(
             activityId = "activity-1",
+            transcriptionProfile = "TRAINING",
+            allowedEventTypes = listOf(TranscriptionEventType.OBSERVATION, TranscriptionEventType.STAT),
             recordings = listOf(
                 TranscriptionRecordingDto(
                     recordingId = "local-recording-1",
@@ -78,6 +80,8 @@ class TranscriptionReviewMapperTest {
 
         val recording = review.recordings.single()
         assertEquals("activity-1", review.activityId)
+        assertEquals("TRAINING", review.transcriptionProfile)
+        assertEquals(listOf(TranscriptionEventType.OBSERVATION, TranscriptionEventType.STAT), review.allowedEventTypes)
         assertEquals("local-recording-1", recording.recordingId)
         assertEquals("backend-recording-1", recording.backendRecordingId)
         assertEquals("trening.m4a", recording.filename)

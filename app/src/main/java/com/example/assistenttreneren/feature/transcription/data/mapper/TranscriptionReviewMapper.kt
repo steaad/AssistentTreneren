@@ -12,6 +12,8 @@ import com.example.assistenttreneren.feature.transcription.data.dto.Transcriptio
 
 fun TranscriptionReviewDto.toTranscriptionReview(): TranscriptionReview = TranscriptionReview(
     activityId = activityId,
+    transcriptionProfile = transcriptionProfile,
+    allowedEventTypes = allowedEventTypes,
     recordings = recordings.map { recording ->
         TranscriptionRecording(
             recordingId = recording.recordingId,

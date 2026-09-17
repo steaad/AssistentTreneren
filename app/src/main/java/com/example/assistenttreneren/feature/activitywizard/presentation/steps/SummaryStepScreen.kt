@@ -127,6 +127,7 @@ private fun TranscriptionSection(
             state.transcriptionErrorMessage != null -> { Text(state.transcriptionErrorMessage, color = MaterialTheme.colorScheme.error); OutlinedButton(viewModel::refreshTranscriptionReview) { Text("Prøv igjen") } }
             state.transcriptionReview == null || state.transcriptionReview.recordings.isEmpty() -> Text("Ingen ferdige transkripsjoner ennå.")
             else -> state.transcriptionReview.recordings.forEach { recording ->
+                val allowedEventTypes = state.transcriptionReview.allowedEventTypes
                 var issueSectionExpanded by rememberSaveable("${recording.recordingId}-issues-expanded") {
                     mutableStateOf(false)
                 }
@@ -155,19 +156,23 @@ private fun TranscriptionSection(
                     }
                     ExpandableSection("Observasjoner (${observations.size})", false, "${recording.recordingId}-events", Icons.Outlined.Visibility) {
                         if (observations.isEmpty()) Text("Ingen observasjoner.")
-                        observations.forEach { event -> EventItem(event, state.isSubmittingTranscriptionAction, viewModel) }
+                        observations.forEach { event -> EventItem(event, allowedEventTypes, state.isSubmittingTranscriptionAction, viewModel) }
                     }
                     ExpandableSection("Statistikk (${statistics.size})", false, "${recording.recordingId}-statistics", Icons.Outlined.BarChart) {
                         if (statistics.isEmpty()) Text("Ingen statistikk.")
-                        statistics.forEach { statistic -> EventItem(statistic, state.isSubmittingTranscriptionAction, viewModel) }
+                        statistics.forEach { statistic -> EventItem(statistic, allowedEventTypes, state.isSubmittingTranscriptionAction, viewModel) }
                     }
-                    ExpandableSection("Spillerbytter (${substitutions.size})", false, "${recording.recordingId}-substitutions", Icons.Outlined.SwapHoriz) {
-                        if (substitutions.isEmpty()) Text("Ingen spillerbytter.")
-                        substitutions.forEach { substitution -> EventItem(substitution, state.isSubmittingTranscriptionAction, viewModel) }
+                    if (TranscriptionEventType.SUBSTITUTION in allowedEventTypes) {
+                        ExpandableSection("Spillerbytter (${substitutions.size})", false, "${recording.recordingId}-substitutions", Icons.Outlined.SwapHoriz) {
+                            if (substitutions.isEmpty()) Text("Ingen spillerbytter.")
+                            substitutions.forEach { substitution -> EventItem(substitution, allowedEventTypes, state.isSubmittingTranscriptionAction, viewModel) }
+                        }
                     }
-                    ExpandableSection("Startoppstilling (${startingLineups.size})", false, "${recording.recordingId}-starting-lineups", Icons.Outlined.People) {
-                        if (startingLineups.isEmpty()) Text("Ingen startoppstilling.")
-                        startingLineups.forEach { lineup -> EventItem(lineup, state.isSubmittingTranscriptionAction, viewModel) }
+                    if (TranscriptionEventType.STARTING_LINEUP in allowedEventTypes) {
+                        ExpandableSection("Startoppstilling (${startingLineups.size})", false, "${recording.recordingId}-starting-lineups", Icons.Outlined.People) {
+                            if (startingLineups.isEmpty()) Text("Ingen startoppstilling.")
+                            startingLineups.forEach { lineup -> EventItem(lineup, allowedEventTypes, state.isSubmittingTranscriptionAction, viewModel) }
+                        }
                     }
                     ExpandableSection(
                         title = "Trenger gjennomgang (${recording.issues.size})",
@@ -185,6 +190,7 @@ private fun TranscriptionSection(
                             IssueItem(
                                 issue = issue,
                                 relatedEvent = relatedEvent,
+                                allowedEventTypes = allowedEventTypes,
                                 busy = state.isSubmittingTranscriptionAction,
                                 viewModel = viewModel,
                                 onIssueHandled = {
@@ -200,7 +206,7 @@ private fun TranscriptionSection(
 }
 
 @Composable
-private fun EventItem(event: TranscriptionEvent, busy: Boolean, viewModel: SummaryStepViewModel) {
+private fun EventItem(event: TranscriptionEvent, allowedEventTypes: List<TranscriptionEventType>, busy: Boolean, viewModel: SummaryStepViewModel) {
     var edit by rememberSaveable(event.eventId) { mutableStateOf(false) }
     var confirmDelete by rememberSaveable("${event.eventId}-delete") { mutableStateOf(false) }
     OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(8.dp)) {
@@ -242,6 +248,7 @@ private fun EventItem(event: TranscriptionEvent, busy: Boolean, viewModel: Summa
             initialPlayerOutName = event.playerOutName,
             initialPlayerInName = event.playerInName,
             initialPlayerNames = event.playerNames,
+            allowedEventTypes = allowedEventTypes,
             busy = busy,
             onDismiss = { edit = false },
         ) { input ->
@@ -280,14 +287,16 @@ private fun UploadSummaryItem(recordingName: String, status: UploadStatus, statu
 private fun IssueItem(
     issue: TranscriptionEventIssue,
     relatedEvent: TranscriptionEvent?,
+    allowedEventTypes: List<TranscriptionEventType>,
     busy: Boolean,
     viewModel: SummaryStepViewModel,
     onIssueHandled: () -> Unit,
 ) {
     var resolve by rememberSaveable(issue.issueId) { mutableStateOf(false) }
-    val requiredEventType = issue.requiredEventType()
+    val requiredEventType = issue.requiredEventType()?.takeIf { it in allowedEventTypes }
     val relatedStartingLineup = relatedEvent?.takeIf {
-        it.eventType == TranscriptionEventType.STARTING_LINEUP
+        it.eventType == TranscriptionEventType.STARTING_LINEUP &&
+            TranscriptionEventType.STARTING_LINEUP in allowedEventTypes
     }
     val lockedEventType = requiredEventType ?: relatedStartingLineup?.eventType
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -334,6 +343,7 @@ private fun IssueItem(
         lockedEventType = lockedEventType,
         requiresStartingLineup = relatedStartingLineup != null ||
             requiredEventType == TranscriptionEventType.STARTING_LINEUP,
+        allowedEventTypes = allowedEventTypes,
         busy = busy,
         onDismiss = { resolve = false },
     ) { input ->
@@ -357,13 +367,17 @@ private fun EventInputDialog(
     allowEventTypeSelection: Boolean = false,
     lockedEventType: TranscriptionEventType? = null,
     requiresStartingLineup: Boolean = false,
+    allowedEventTypes: List<TranscriptionEventType> = TranscriptionEventType.entries,
     onConfirm: (TranscriptionEventInput) -> Unit,
 ) {
     var text by rememberSaveable { mutableStateOf(initialText) }
     var start by rememberSaveable { mutableStateOf(formatMatchClockInput(initialStart)) }
     var end by rememberSaveable { mutableStateOf(formatMatchClockInput(initialEnd)) }
     var eventType by rememberSaveable {
-        mutableStateOf(lockedEventType ?: initialEventType ?: TranscriptionEventType.OBSERVATION)
+        mutableStateOf(
+            lockedEventType ?: initialEventType?.takeIf { it in allowedEventTypes }
+                ?: allowedEventTypes.firstOrNull() ?: TranscriptionEventType.OBSERVATION,
+        )
     }
     var playerOutName by rememberSaveable { mutableStateOf(initialPlayerOutName.orEmpty()) }
     var playerInName by rememberSaveable { mutableStateOf(initialPlayerInName.orEmpty()) }
@@ -406,32 +420,40 @@ private fun EventInputDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        if (TranscriptionEventType.OBSERVATION in allowedEventTypes || TranscriptionEventType.STAT in allowedEventTypes) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                if (TranscriptionEventType.OBSERVATION in allowedEventTypes) {
+                                    EventTypeSelectionButton(
+                                        type = TranscriptionEventType.OBSERVATION,
+                                        label = "Observasjon",
+                                        selectedType = eventType,
+                                        onSelected = { eventType = it },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                                if (TranscriptionEventType.STAT in allowedEventTypes) {
+                                    EventTypeSelectionButton(
+                                        type = TranscriptionEventType.STAT,
+                                        label = "Statistikk",
+                                        selectedType = eventType,
+                                        onSelected = { eventType = it },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                        if (TranscriptionEventType.SUBSTITUTION in allowedEventTypes) {
                             EventTypeSelectionButton(
-                                type = TranscriptionEventType.OBSERVATION,
-                                label = "Observasjon",
+                                type = TranscriptionEventType.SUBSTITUTION,
+                                label = "Spillerbytte",
                                 selectedType = eventType,
                                 onSelected = { eventType = it },
-                                modifier = Modifier.weight(1f),
-                            )
-                            EventTypeSelectionButton(
-                                type = TranscriptionEventType.STAT,
-                                label = "Statistikk",
-                                selectedType = eventType,
-                                onSelected = { eventType = it },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        EventTypeSelectionButton(
-                            type = TranscriptionEventType.SUBSTITUTION,
-                            label = "Spillerbytte",
-                            selectedType = eventType,
-                            onSelected = { eventType = it },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
                     }
                 }
                 if (requiresPlayerList) {

@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TranscriptionReviewDto(
     val activityId: String,
+    val transcriptionProfile: String? = null,
+    val allowedEventTypes: List<TranscriptionEventType> = TranscriptionEventType.entries,
     val recordings: List<TranscriptionRecordingDto> = emptyList(),
 )
 

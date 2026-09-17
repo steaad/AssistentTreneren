@@ -12,6 +12,8 @@ enum class TranscriptionEventType {
 
 data class TranscriptionReview(
     val activityId: String,
+    val transcriptionProfile: String?,
+    val allowedEventTypes: List<TranscriptionEventType>,
     val recordings: List<TranscriptionRecording>,
 )
 
