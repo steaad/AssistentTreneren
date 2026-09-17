@@ -7,7 +7,17 @@ data class MatchAnalysisResult(
     val priorities: List<AnalysisEvidence>,
     val recommendations: List<AnalysisEvidence>,
     val uncertainties: List<AnalysisEvidence>,
+    val coachInterventions: List<CoachIntervention>,
     val match: MatchCategoryAnalysis,
+)
+
+data class CoachIntervention(
+    val type: String,
+    val summary: String,
+    val section: String,
+    val confidence: String,
+    val relatedEventIds: List<String>,
+    val relatedTranscriptionIds: List<String>,
 )
 
 data class ExecutiveSummary(

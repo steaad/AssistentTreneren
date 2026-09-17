@@ -10,7 +10,18 @@ data class MatchAnalysisResultDto(
     val priorities: List<AnalysisEvidenceDto>,
     val recommendations: List<AnalysisEvidenceDto>,
     val uncertainties: List<AnalysisEvidenceDto>,
+    val coachInterventions: List<CoachInterventionDto> = emptyList(),
     val categoryAnalysis: MatchCategoryAnalysisDto,
+)
+
+@Serializable
+data class CoachInterventionDto(
+    val type: String,
+    val summary: String,
+    val section: String,
+    val confidence: String,
+    val relatedEventIds: List<String> = emptyList(),
+    val relatedTranscriptionIds: List<String> = emptyList(),
 )
 
 @Serializable

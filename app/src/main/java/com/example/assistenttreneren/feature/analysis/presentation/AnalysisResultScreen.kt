@@ -37,6 +37,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisEvidence
 import com.example.assistenttreneren.feature.analysis.domain.model.MatchAnalysisResult
 import com.example.assistenttreneren.feature.analysis.domain.model.MatchPhase
+import com.example.assistenttreneren.feature.analysis.domain.model.TrainingAnalysisResult
+import com.example.assistenttreneren.feature.analysis.domain.model.TrainingSection
+import com.example.assistenttreneren.feature.analysis.domain.model.CoachIntervention
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +52,7 @@ fun AnalysisResultScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kampanalyse") },
+                title = { Text(if (uiState.trainingResult != null || uiState.analysisMetadata?.activityCategory == "Trening") "Treningsanalyse" else "Kampanalyse") },
                 navigationIcon = {
                     androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Tilbake")
@@ -67,6 +70,12 @@ fun AnalysisResultScreen(
                 contentPadding = paddingValues,
             )
 
+            uiState.trainingResult != null -> TrainingAnalysisContent(
+                result = requireNotNull(uiState.trainingResult),
+                analysisMetadata = uiState.analysisMetadata,
+                contentPadding = paddingValues,
+            )
+
             uiState.unsupportedResult != null -> UnsupportedResult(
                 rawResult = uiState.unsupportedResult.toString(),
                 modifier = Modifier.padding(paddingValues),
@@ -77,6 +86,97 @@ fun AnalysisResultScreen(
                 onRetry = viewModel::retry,
                 modifier = Modifier.padding(paddingValues),
             )
+        }
+    }
+}
+
+@Composable
+private fun TrainingAnalysisContent(
+    result: TrainingAnalysisResult,
+    analysisMetadata: com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob?,
+    contentPadding: PaddingValues,
+) {
+    val training = result.training
+    LazyColumn(
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = contentPadding.calculateTopPadding() + 12.dp,
+            end = 16.dp,
+            bottom = contentPadding.calculateBottomPadding() + 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        analysisMetadata?.let { metadata -> item { AnalysisMetadataCard(metadata) } }
+        item {
+            AnalysisSection("Kort oppsummering", "training-summary", expandedInitially = true) {
+                Text(result.executiveSummary.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(result.executiveSummary.summary)
+                Text(training.summary, style = MaterialTheme.typography.bodyMedium)
+                InsightTextList("Viktigste punkter", result.executiveSummary.keyTakeaways)
+                InsightTextList("Positive utviklingstrekk", result.executiveSummary.positiveDevelopments)
+                InsightTextList("Viktige bekymringer", result.executiveSummary.mainConcerns)
+            }
+        }
+        item {
+            AnalysisSection("Læringsmål og læring", "training-learning") {
+                InsightTextList("Valgte læringsmål", result.learningSummary.statedLearningObjectives)
+                InsightTextList("Hva spillerne ser ut til å forstå", result.learningSummary.whatPlayersAppearToUnderstand)
+                InsightTextList("Hva de trenger flere erfaringer med", result.learningSummary.whatPlayersStillStruggleWith)
+                InsightTextList("Neste læringsprioriteter", result.learningSummary.nextLearningPriorities)
+            }
+        }
+        item { TrainingSectionGroup("Øvelsesdel", training.exercise, "Ingen lydopptak i Øvelse-delen.") }
+        item { TrainingSectionGroup("Spilldel", training.game, "Ingen lydopptak i Spill-delen.") }
+        item { TrainingSectionGroup("Evaluering", training.evaluation, "Ingen lydopptak i Evalueringsdelen.") }
+        item {
+            AnalysisSection("Læringsprogresjon", "training-progression") {
+                when {
+                    training.exercise != null && training.game != null -> {
+                        Text("Fra øvelse til spill", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        EvidenceGroup("Progresjon", training.learningProgressions)
+                    }
+                    training.learningProgressions.isNotEmpty() -> {
+                        Text("Overføringen fra øvelse til spill kunne ikke vurderes fullt ut fordi en av delene mangler.")
+                        EvidenceGroup("Progresjon", training.learningProgressions)
+                    }
+                    else -> Text("Ingen læringsprogresjon kunne identifiseres i datagrunnlaget.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        item {
+            AnalysisSection("Lag- og spillerutvikling", "training-development") {
+                Text(result.teamDevelopmentSummary.overallSummary)
+                EvidenceGroup("Lagets utvikling", result.teamDevelopmentSummary.players)
+                Text(result.playerDevelopmentSummary.overallSummary)
+                EvidenceGroup("Spillerutvikling", result.playerDevelopmentSummary.players)
+                EvidenceGroup("Spilleroppfølging", training.playerFollowUp)
+            }
+        }
+        item {
+            AnalysisSection("Trenerinteraksjoner (${result.coachInterventions.size})", "training-coach-interactions") {
+                CoachInterventions(result.coachInterventions)
+            }
+        }
+        item {
+            AnalysisSection("Mønstre og prioriteringer", "training-patterns") {
+                EvidenceGroup("Mønstre", result.patterns)
+                EvidenceGroup("Prioriteringer", result.priorities)
+            }
+        }
+        item { AnalysisSection("Anbefalinger", "training-recommendations") { EvidenceGroup("Anbefalinger", result.recommendations) } }
+        item { AnalysisSection("Usikkerhet i datagrunnlaget", "training-uncertainties") { EvidenceGroup("Usikkerheter", result.uncertainties) } }
+    }
+}
+
+@Composable
+private fun TrainingSectionGroup(title: String, section: TrainingSection?, emptyMessage: String) {
+    AnalysisSection(title, "training-${title.lowercase()}") {
+        if (section == null) {
+            Text(emptyMessage, style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text(section.summary)
+            EvidenceGroup("Funn", section.findings)
+            EvidenceGroup("Usikkerheter", section.uncertainties)
         }
     }
 }
@@ -192,6 +292,11 @@ private fun MatchAnalysisContent(
             }
         }
         item {
+            AnalysisSection("Trenerinteraksjoner (${result.coachInterventions.size})", sectionKey = "match-coach-interactions") {
+                CoachInterventions(result.coachInterventions)
+            }
+        }
+        item {
             AnalysisSection("Kampfaser ($phaseCount)", sectionKey = "phases") {
                 EvidenceGroup("Sammenligning mellom faser", result.match.phaseComparisons)
                 PhaseGroup("1. omgang", result.match.firstHalf)
@@ -289,6 +394,38 @@ private fun EvidenceCard(evidence: AnalysisEvidence) {
 }
 
 @Composable
+private fun CoachInterventions(interventions: List<CoachIntervention>) {
+    if (interventions.isEmpty()) {
+        Text("Ingen sikre trenerinteraksjoner ble identifisert.", style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        interventions.forEach { intervention ->
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = "${intervention.type.toDisplayName()} · ${intervention.section}",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(intervention.summary)
+                    Text(
+                        text = "Høy sikkerhet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    intervention.sourceText()?.let { sourceText ->
+                        Text(sourceText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun PhaseGroup(title: String, phases: List<MatchPhase>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -319,3 +456,21 @@ private fun AnalysisEvidence.sourceText(): String? {
     }
     return sources.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
+
+private fun CoachIntervention.sourceText(): String? {
+    val sources = buildList {
+        if (relatedEventIds.isNotEmpty()) add("${relatedEventIds.size} ${if (relatedEventIds.size == 1) "hendelse" else "hendelser"}")
+        if (relatedTranscriptionIds.isNotEmpty()) add("${relatedTranscriptionIds.size} ${if (relatedTranscriptionIds.size == 1) "transkripsjon" else "transkripsjoner"}")
+    }
+    return sources.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+}
+
+private fun String.toDisplayName(): String =
+    when (this) {
+        "INSTRUCTION" -> "Instruksjon"
+        "QUESTION" -> "Spørsmål"
+        "FEEDBACK" -> "Tilbakemelding"
+        "REINFORCEMENT" -> "Forsterkning"
+        "ORGANISATION" -> "Organisering"
+        else -> this
+    }

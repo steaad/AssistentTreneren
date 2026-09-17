@@ -15,6 +15,12 @@ import com.example.assistenttreneren.feature.activitywizard.domain.usecase.Updat
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterSuggestionsUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateMatchRosterUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetTrainingLearningCatalogUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetTrainingLearningConfigUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateTrainingLearningConfigUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TeamFunction
+import com.example.assistenttreneren.feature.activitywizard.domain.model.LearningCatalogItem
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TrainingLearningConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +39,9 @@ class CoachActivityWizardViewModel @Inject constructor(
     private val getMatchRosterUseCase: GetMatchRosterUseCase,
     private val getMatchRosterSuggestionsUseCase: GetMatchRosterSuggestionsUseCase,
     private val updateMatchRosterUseCase: UpdateMatchRosterUseCase,
+    private val getTrainingLearningCatalogUseCase: GetTrainingLearningCatalogUseCase,
+    private val getTrainingLearningConfigUseCase: GetTrainingLearningConfigUseCase,
+    private val updateTrainingLearningConfigUseCase: UpdateTrainingLearningConfigUseCase,
     private val localCoachActivityRepository: LocalCoachActivityRepository,
     private val sessionManager: SessionManager,
 ) : ViewModel() {
@@ -82,9 +91,13 @@ class CoachActivityWizardViewModel @Inject constructor(
                 activityCategory = activityCategory,
                 activityErrorMessage = null,
                 matchRoster = if (activityCategory == "Kamp") currentState.matchRoster else emptyList(),
+                trainingLearningConfig = if (activityCategory == "Trening") currentState.trainingLearningConfig else TrainingLearningConfig(),
+                subthemes = if (activityCategory == "Trening") currentState.subthemes else emptyList(),
+                learningObjectives = if (activityCategory == "Trening") currentState.learningObjectives else emptyList(),
             )
         }
         if (activityCategory == "Kamp") loadMatchRosterSuggestions()
+        if (activityCategory == "Trening") loadTrainingCatalog()
     }
 
     fun onExistingActivitySelected(activityId: String) {
@@ -98,10 +111,17 @@ class CoachActivityWizardViewModel @Inject constructor(
                 selectedActivityId = selectedActivity?.activityId,
                 title = selectedActivity?.title.orEmpty(),
                 activityCategory = selectedActivity?.activityCategory,
+                trainingLearningConfig = TrainingLearningConfig(),
+                subthemes = emptyList(),
+                learningObjectives = emptyList(),
                 activityErrorMessage = null,
             )
         }
         if (uiState.value.activityCategory == "Kamp") loadMatchRoster(activityId)
+        if (uiState.value.activityCategory == "Trening") {
+            loadTrainingCatalog()
+            loadTrainingLearningConfig(activityId)
+        }
     }
 
     fun onMatchRosterChanged(playerNames: List<String>) {
@@ -115,6 +135,25 @@ class CoachActivityWizardViewModel @Inject constructor(
     fun onMatchHalfDurationChanged(minutes: Int) {
         if (minutes !in MATCH_HALF_DURATION_OPTIONS) return
         _uiState.update { it.copy(matchHalfDurationMinutes = minutes) }
+    }
+
+    fun onTeamFunctionSelected(teamFunction: TeamFunction) {
+        _uiState.update { state ->
+            state.copy(trainingLearningConfig = TrainingLearningConfig(teamFunction = teamFunction), subthemes = emptyList(), learningObjectives = emptyList(), trainingLearningErrorMessage = null)
+        }
+    }
+
+    fun onThemeSelected(theme: LearningCatalogItem) {
+        _uiState.update { state -> state.copy(trainingLearningConfig = state.trainingLearningConfig.copy(theme = theme, subtheme = null, objectives = emptyList()), subthemes = emptyList(), learningObjectives = emptyList(), trainingLearningErrorMessage = null) }
+        loadThemeChildren(theme.id)
+    }
+
+    fun onSubthemeSelected(subtheme: LearningCatalogItem?) {
+        _uiState.update { state -> state.copy(trainingLearningConfig = state.trainingLearningConfig.copy(subtheme = subtheme, objectives = emptyList()), trainingLearningErrorMessage = null) }
+    }
+
+    fun onLearningObjectivesSelected(objectives: List<LearningCatalogItem>) {
+        _uiState.update { state -> state.copy(trainingLearningConfig = state.trainingLearningConfig.copy(objectives = objectives), trainingLearningErrorMessage = null) }
     }
 
     fun onRetryLoadExistingActivitiesClicked() {
@@ -243,7 +282,7 @@ class CoachActivityWizardViewModel @Inject constructor(
                 )
             ) {
                 is CoachActivityResult.Success -> {
-                    if (!saveMatchRosterIfRequired(updateResult.data.activityId, onNavigateNext)) return@launch
+                    if (!saveMatchRosterIfRequired(updateResult.data.activityId) || !saveTrainingLearningConfigIfRequired(updateResult.data.activityId)) return@launch
                     localCoachActivityRepository.saveActivity(updateResult.data)
                     _uiState.update {
                         it.copy(
@@ -255,7 +294,7 @@ class CoachActivityWizardViewModel @Inject constructor(
                             activityErrorMessage = null,
                         )
                     }
-                    if (uiState.value.activityCategory != "Kamp") onNavigateNext()
+                    onNavigateNext()
                 }
 
                 is CoachActivityResult.Failure -> {
@@ -288,9 +327,16 @@ class CoachActivityWizardViewModel @Inject constructor(
             return
         }
 
-        if (updatedTitle == selectedActivity.title.orEmpty().trim() && currentState.activityCategory != "Kamp") {
-            onNavigateNext()
-            return
+        if (updatedTitle == selectedActivity.title.orEmpty().trim()) {
+            when (currentState.activityCategory) {
+                "Trening" -> saveExistingTrainingLearningConfigAndNavigate(
+                    activityId = selectedActivity.activityId,
+                    onNavigateNext = onNavigateNext,
+                )
+                "Kamp" -> Unit
+                else -> onNavigateNext()
+            }
+            if (currentState.activityCategory != "Kamp") return
         }
 
         viewModelScope.launch {
@@ -329,7 +375,7 @@ class CoachActivityWizardViewModel @Inject constructor(
             ) {
                 is CoachActivityResult.Success -> {
                     localCoachActivityRepository.saveActivity(result.data)
-                    if (!saveMatchRosterIfRequired(result.data.activityId, onNavigateNext)) return@launch
+                    if (!saveMatchRosterIfRequired(result.data.activityId) || !saveTrainingLearningConfigIfRequired(result.data.activityId)) return@launch
                     updateExistingActivityStateAndNavigate(result.data, onNavigateNext)
                 }
 
@@ -382,12 +428,72 @@ class CoachActivityWizardViewModel @Inject constructor(
         }
     }
 
-    private suspend fun saveMatchRosterIfRequired(activityId: String, onNavigateNext: () -> Unit): Boolean {
+    private suspend fun saveMatchRosterIfRequired(activityId: String): Boolean {
         val roster = uiState.value.matchRoster
         if (uiState.value.activityCategory != "Kamp") return true
         return when (val result = updateMatchRosterUseCase(activityId, roster)) {
-            is CoachActivityResult.Success -> { onNavigateNext(); true }
+            is CoachActivityResult.Success -> true
             is CoachActivityResult.Failure -> { _uiState.update { it.copy(isCreatingActivity = false, isUpdatingExistingActivity = false, activityErrorMessage = result.error.toUserMessage()) }; false }
+        }
+    }
+
+    private fun loadTrainingCatalog() = viewModelScope.launch {
+        if (_uiState.value.isLoadingTrainingCatalog || isBackendBypassActive()) return@launch
+        _uiState.update { it.copy(isLoadingTrainingCatalog = true, trainingLearningErrorMessage = null) }
+        val functions = getTrainingLearningCatalogUseCase.teamFunctions()
+        val themes = getTrainingLearningCatalogUseCase.themes()
+        _uiState.update { state ->
+            if (functions is CoachActivityResult.Success && themes is CoachActivityResult.Success) state.copy(teamFunctions = functions.data, themes = themes.data, isLoadingTrainingCatalog = false)
+            else state.copy(isLoadingTrainingCatalog = false, trainingLearningErrorMessage = "Kunne ikke hente læringskatalogen.")
+        }
+    }
+
+    private fun loadThemeChildren(themeId: String) = viewModelScope.launch {
+        _uiState.update { it.copy(isLoadingTrainingCatalog = true) }
+        val subthemes = getTrainingLearningCatalogUseCase.subthemes(themeId)
+        val objectives = getTrainingLearningCatalogUseCase.objectives(themeId)
+        _uiState.update { state ->
+            if (subthemes is CoachActivityResult.Success && objectives is CoachActivityResult.Success) state.copy(subthemes = subthemes.data, learningObjectives = objectives.data, isLoadingTrainingCatalog = false)
+            else state.copy(isLoadingTrainingCatalog = false, trainingLearningErrorMessage = "Kunne ikke hente temaets undertemaer og læringsmål.")
+        }
+    }
+
+    private fun loadTrainingLearningConfig(activityId: String) = viewModelScope.launch {
+        when (val result = getTrainingLearningConfigUseCase(activityId)) {
+            is CoachActivityResult.Success -> {
+                val config = result.data
+                _uiState.update {
+                    it.copy(
+                        trainingLearningConfig = config,
+                        subthemes = emptyList(),
+                        learningObjectives = emptyList(),
+                        trainingLearningErrorMessage = null,
+                    )
+                }
+                config.theme?.let { loadThemeChildren(it.id) }
+            }
+            is CoachActivityResult.Failure -> _uiState.update {
+                it.copy(trainingLearningErrorMessage = result.error.toUserMessage())
+            }
+        }
+    }
+
+    private suspend fun saveTrainingLearningConfigIfRequired(activityId: String): Boolean {
+        if (uiState.value.activityCategory != "Trening") return true
+        return when (val result = updateTrainingLearningConfigUseCase(activityId, uiState.value.trainingLearningConfig)) {
+            is CoachActivityResult.Success -> true
+            is CoachActivityResult.Failure -> { _uiState.update { it.copy(isCreatingActivity = false, isUpdatingExistingActivity = false, activityErrorMessage = result.error.toUserMessage()) }; false }
+        }
+    }
+
+    private fun saveExistingTrainingLearningConfigAndNavigate(
+        activityId: String,
+        onNavigateNext: () -> Unit,
+    ) = viewModelScope.launch {
+        _uiState.update { it.copy(isUpdatingExistingActivity = true, activityErrorMessage = null) }
+        if (saveTrainingLearningConfigIfRequired(activityId)) {
+            _uiState.update { it.copy(isUpdatingExistingActivity = false, activityErrorMessage = null) }
+            onNavigateNext()
         }
     }
 

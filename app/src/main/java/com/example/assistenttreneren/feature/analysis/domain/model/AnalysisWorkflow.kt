@@ -4,8 +4,10 @@ import kotlinx.serialization.json.JsonElement
 
 enum class AnalysisCandidateState {
     READY,
+    READY_FOR_REANALYSIS,
     NO_AUDIO_RECORDINGS,
     TRANSCRIPTION_PENDING,
+    LEARNING_CONFIG_REQUIRED,
     REVIEW_REQUIRED,
     INPUT_INVALID,
     PROCESSING,
@@ -18,7 +20,16 @@ data class AnalysisCandidate(
     val title: String?,
     val state: AnalysisCandidateState,
     val message: String,
-    val latestAnalysis: AnalysisJob?,
+    val latestAnalysis: AnalysisSummary?,
+)
+
+data class AnalysisSummary(
+    val analysisId: String,
+    val version: Int,
+    val inputRevision: Long,
+    val status: AnalysisJobStatus,
+    val createdAt: String,
+    val completedAt: String?,
 )
 
 data class AnalysisJob(

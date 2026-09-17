@@ -21,4 +21,9 @@ interface AnalysisApi {
     suspend fun getAnalysis(
         @Path("analysisId") analysisId: String,
     ): AnalysisJobDto
+
+    @GET("api/activities/{activityId}/analyses")
+    suspend fun getActivityAnalyses(
+        @Path("activityId") activityId: String,
+    ): List<com.example.assistenttreneren.feature.analysis.data.dto.ActivityAnalysisSummaryDto>
 }

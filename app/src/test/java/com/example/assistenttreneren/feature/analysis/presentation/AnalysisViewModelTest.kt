@@ -5,10 +5,12 @@ import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandi
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidateState
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJobStatus
+import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisSummary
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowRepository
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowResult
 import com.example.assistenttreneren.feature.analysis.domain.usecase.GetAnalysisCandidatesUseCase
 import com.example.assistenttreneren.feature.analysis.domain.usecase.GetAnalysisUseCase
+import com.example.assistenttreneren.feature.analysis.domain.usecase.GetActivityAnalysesUseCase
 import com.example.assistenttreneren.feature.analysis.domain.usecase.StartAnalysisUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -88,7 +90,7 @@ class AnalysisViewModelTest {
         val completed = candidate(
             activityId = "completed",
             state = AnalysisCandidateState.COMPLETED,
-            latestAnalysis = analysisJob(status = AnalysisJobStatus.COMPLETED),
+            latestAnalysis = analysisSummary(),
         )
         val viewModel = viewModel(FakeAnalysisWorkflowRepository(candidates = listOf(completed, ready)))
         runCurrent()
@@ -99,8 +101,9 @@ class AnalysisViewModelTest {
 
     private fun viewModel(repository: AnalysisWorkflowRepository) = AnalysisViewModel(
         GetAnalysisCandidatesUseCase(repository),
-        StartAnalysisUseCase(repository),
-        GetAnalysisUseCase(repository),
+            StartAnalysisUseCase(repository),
+            GetAnalysisUseCase(repository),
+            GetActivityAnalysesUseCase(repository),
     )
 
     private class FakeAnalysisWorkflowRepository(
@@ -122,13 +125,14 @@ class AnalysisViewModelTest {
             getAnalysisCalls++
             return analysisResults.removeFirstOrNull() ?: AnalysisWorkflowResult.Success(analysisJob())
         }
+        override suspend fun getActivityAnalyses(activityId: String) = AnalysisWorkflowResult.Success(emptyList<AnalysisSummary>())
     }
 
     private companion object {
         fun candidate(
             activityId: String = "activity-1",
             state: AnalysisCandidateState = AnalysisCandidateState.READY,
-            latestAnalysis: AnalysisJob? = null,
+            latestAnalysis: AnalysisSummary? = null,
         ) = AnalysisCandidate(
             activityId = activityId,
             title = "Kamp mot Nordstrand",
@@ -148,6 +152,11 @@ class AnalysisViewModelTest {
             completedAt = if (status == AnalysisJobStatus.COMPLETED) "2026-01-01T00:01:00Z" else null,
             errorMessage = null,
             result = null,
+        )
+
+        fun analysisSummary(status: AnalysisJobStatus = AnalysisJobStatus.COMPLETED) = AnalysisSummary(
+            analysisId = "analysis-1", version = 1, inputRevision = 1, status = status,
+            createdAt = "2026-01-01T00:00:00Z", completedAt = "2026-01-01T00:01:00Z",
         )
     }
 }

@@ -36,20 +36,11 @@ internal fun CompletedAnalysisList(
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(candidate.title ?: "Analyse uten tittel", fontWeight = FontWeight.SemiBold)
                     candidate.latestAnalysis?.let { analysis ->
-                        analysis.statusMetadataText()?.let { status ->
-                            Text(
-                                status,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        analysis.dataBasisText()?.let { dataBasis ->
-                            Text(
-                                dataBasis,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        Text(
+                            "Analyse v${analysis.version}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

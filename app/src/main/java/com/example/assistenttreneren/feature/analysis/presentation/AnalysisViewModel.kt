@@ -9,6 +9,7 @@ import com.example.assistenttreneren.feature.analysis.domain.repository.Analysis
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowResult
 import com.example.assistenttreneren.feature.analysis.domain.usecase.GetAnalysisCandidatesUseCase
 import com.example.assistenttreneren.feature.analysis.domain.usecase.GetAnalysisUseCase
+import com.example.assistenttreneren.feature.analysis.domain.usecase.GetActivityAnalysesUseCase
 import com.example.assistenttreneren.feature.analysis.domain.usecase.StartAnalysisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class AnalysisViewModel @Inject constructor(
     private val getAnalysisCandidates: GetAnalysisCandidatesUseCase,
     private val startAnalysis: StartAnalysisUseCase,
     private val getAnalysis: GetAnalysisUseCase,
+    private val getActivityAnalyses: GetActivityAnalysesUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AnalysisUiState())
     val uiState: StateFlow<AnalysisUiState> = _uiState.asStateFlow()
@@ -55,7 +57,7 @@ class AnalysisViewModel @Inject constructor(
 
     fun startSelectedAnalysis() {
         val selectedCandidate = _uiState.value.selectedCandidate ?: return
-        if (selectedCandidate.state != AnalysisCandidateState.READY || _uiState.value.isStartingAnalysis) return
+        if (selectedCandidate.state !in setOf(AnalysisCandidateState.READY, AnalysisCandidateState.READY_FOR_REANALYSIS) || _uiState.value.isStartingAnalysis) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isStartingAnalysis = true, errorMessage = null, completedAnalysis = null) }
@@ -91,15 +93,36 @@ class AnalysisViewModel @Inject constructor(
         }
     }
 
+    fun loadActivityAnalyses(activityId: String) {
+        if (activityId in _uiState.value.loadingActivityAnalysisIds || activityId in _uiState.value.activityAnalyses) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(loadingActivityAnalysisIds = it.loadingActivityAnalysisIds + activityId) }
+            when (val result = getActivityAnalyses(activityId)) {
+                is AnalysisWorkflowResult.Success -> _uiState.update {
+                    it.copy(
+                        activityAnalyses = it.activityAnalyses + (activityId to result.data.sortedByDescending { summary -> summary.createdAt }),
+                        loadingActivityAnalysisIds = it.loadingActivityAnalysisIds - activityId,
+                    )
+                }
+                is AnalysisWorkflowResult.Failure -> _uiState.update {
+                    it.copy(
+                        loadingActivityAnalysisIds = it.loadingActivityAnalysisIds - activityId,
+                        errorMessage = result.error.toUserMessage(),
+                    )
+                }
+            }
+        }
+    }
+
     private fun refreshCandidates(errorMessage: String?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingCandidates = true) }
             when (val result = getAnalysisCandidates()) {
                 is AnalysisWorkflowResult.Success -> {
                     val completedAnalyses = result.data
-                        .filter { it.hasCompletedAnalysis() }
+                        .filter { it.latestAnalysis != null }
                         .sortedByDescending { it.latestAnalysis?.completedAt ?: it.latestAnalysis?.createdAt }
-                    val candidates = result.data.filterNot { it.hasCompletedAnalysis() }
+                    val candidates = result.data.filter { it.state != AnalysisCandidateState.COMPLETED }
                     val currentSelection = _uiState.value.selectedActivityId
                     val selectedActivityId = currentSelection.takeIf { selectedId ->
                         candidates.any { it.activityId == selectedId }
@@ -126,7 +149,6 @@ class AnalysisViewModel @Inject constructor(
     private fun startPollingForSelectedCandidate() {
         val latestAnalysis = _uiState.value.selectedCandidate?.latestAnalysis ?: return
         if (latestAnalysis.status in setOf(AnalysisJobStatus.QUEUED, AnalysisJobStatus.PROCESSING)) {
-            _uiState.update { it.copy(activeAnalysis = latestAnalysis) }
             startPolling(latestAnalysis.analysisId)
         }
     }
@@ -206,6 +228,3 @@ class AnalysisViewModel @Inject constructor(
         const val POLL_INTERVAL_MILLIS = 2_500L
     }
 }
-
-private fun com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidate.hasCompletedAnalysis(): Boolean =
-    latestAnalysis?.status == AnalysisJobStatus.COMPLETED || state == AnalysisCandidateState.COMPLETED

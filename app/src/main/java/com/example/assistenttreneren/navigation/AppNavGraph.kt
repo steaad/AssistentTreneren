@@ -131,6 +131,7 @@ fun AppNavGraph(
         composable(Routes.Settings.route) {
             SettingsScreen(
                 viewModel = hiltViewModel(),
+                catalogViewModel = hiltViewModel(),
                 onNavigateBack = navController::popBackStack,
                 onUnauthorized = onLogoutClicked,
             )
@@ -158,6 +159,10 @@ fun AppNavGraph(
                     onMatchRosterChanged = viewModel::onMatchRosterChanged,
                     onMatchRosterSuggestionSelected = viewModel::onMatchRosterSuggestionSelected,
                     onMatchHalfDurationChanged = viewModel::onMatchHalfDurationChanged,
+                    onTeamFunctionSelected = viewModel::onTeamFunctionSelected,
+                    onThemeSelected = viewModel::onThemeSelected,
+                    onSubthemeSelected = viewModel::onSubthemeSelected,
+                    onLearningObjectivesSelected = viewModel::onLearningObjectivesSelected,
                     onRetryLoadExistingActivitiesClicked = viewModel::onRetryLoadExistingActivitiesClicked,
                     onNavigateBack = navController::popBackStack,
                     onNavigateNext = {
@@ -232,6 +237,9 @@ fun AppNavGraph(
                 onNavigateBack = navController::popBackStack,
                 onShowAnalysis = { analysisId ->
                     navController.navigate(Routes.AnalysisResult.createRoute(analysisId))
+                },
+                onOpenTrainingLearningConfig = {
+                    navController.navigate(Routes.CoachActivity.route)
                 },
             )
         }

@@ -1,6 +1,7 @@
 package com.example.assistenttreneren.feature.analysis.data.mapper
 
 import com.example.assistenttreneren.feature.analysis.data.dto.AnalysisEvidenceDto
+import com.example.assistenttreneren.feature.analysis.data.dto.CoachInterventionDto
 import com.example.assistenttreneren.feature.analysis.data.dto.ExecutiveSummaryDto
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchAnalysisResultDto
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchCategoryAnalysisDto
@@ -28,6 +29,15 @@ class MatchAnalysisResultMapperTest {
             priorities = listOf(evidence),
             recommendations = listOf(evidence),
             uncertainties = listOf(evidence),
+            coachInterventions = listOf(
+                CoachInterventionDto(
+                    type = "QUESTION",
+                    summary = "Treneren ber laget vurdere neste pasning.",
+                    section = "2. omgang",
+                    confidence = "HIGH",
+                    relatedTranscriptionIds = listOf("transcription-1"),
+                ),
+            ),
             categoryAnalysis = MatchCategoryAnalysisDto(
                 MatchCategoryDto(
                     summary = MatchSummaryDto("Vurdering", "Fortelling", listOf("Press"), listOf("Kompakthet"), listOf(evidence)),
@@ -48,5 +58,7 @@ class MatchAnalysisResultMapperTest {
         assertEquals("event-1", result.priorities.single().relatedEventIds.single())
         assertEquals("1.omgang", result.match.firstHalf.single().subcategory)
         assertEquals("Høyt press", result.match.firstHalf.single().findings.single().title)
+        assertEquals("QUESTION", result.coachInterventions.single().type)
+        assertEquals("transcription-1", result.coachInterventions.single().relatedTranscriptionIds.single())
     }
 }

@@ -2,11 +2,13 @@ package com.example.assistenttreneren.feature.analysis.domain.repository
 
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidate
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob
+import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisSummary
 
 interface AnalysisWorkflowRepository {
     suspend fun getCandidates(): AnalysisWorkflowResult<List<AnalysisCandidate>>
     suspend fun startAnalysis(activityId: String): AnalysisWorkflowResult<AnalysisJob>
     suspend fun getAnalysis(analysisId: String): AnalysisWorkflowResult<AnalysisJob>
+    suspend fun getActivityAnalyses(activityId: String): AnalysisWorkflowResult<List<AnalysisSummary>>
 }
 
 sealed interface AnalysisWorkflowResult<out T> {

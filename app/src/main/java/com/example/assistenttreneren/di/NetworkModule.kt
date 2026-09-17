@@ -5,6 +5,7 @@ import com.example.assistenttreneren.BuildConfig
 import com.example.assistenttreneren.core.network.AuthAuthenticator
 import com.example.assistenttreneren.core.network.AuthInterceptor
 import com.example.assistenttreneren.feature.activitywizard.data.remote.CoachActivityApi
+import com.example.assistenttreneren.feature.activitywizard.data.remote.LearningCatalogApi
 import com.example.assistenttreneren.feature.analysis.data.remote.AnalysisApi
 import com.example.assistenttreneren.feature.login.data.remote.AuthApi
 import com.example.assistenttreneren.feature.transcription.data.remote.TranscriptionReviewApi
@@ -93,6 +94,12 @@ object NetworkModule {
         @Named(AUTHENTICATED_RETROFIT)
         retrofit: Retrofit,
     ): CoachActivityApi = retrofit.create(CoachActivityApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideLearningCatalogApi(
+        @Named(AUTHENTICATED_RETROFIT) retrofit: Retrofit,
+    ): LearningCatalogApi = retrofit.create(LearningCatalogApi::class.java)
 
     @Provides
     @Singleton

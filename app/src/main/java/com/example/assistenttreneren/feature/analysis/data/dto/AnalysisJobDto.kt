@@ -9,7 +9,17 @@ data class AnalysisCandidateDto(
     val title: String? = null,
     val state: String,
     val message: String,
-    val latestAnalysis: AnalysisJobDto? = null,
+    val latestAnalysis: ActivityAnalysisSummaryDto? = null,
+)
+
+@Serializable
+data class ActivityAnalysisSummaryDto(
+    val analysisId: String,
+    val version: Int,
+    val inputRevision: Long,
+    val status: String,
+    val createdAt: String,
+    val completedAt: String? = null,
 )
 
 @Serializable

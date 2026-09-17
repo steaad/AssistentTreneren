@@ -1,12 +1,15 @@
 package com.example.assistenttreneren.feature.activitywizard.presentation
 
+import com.example.assistenttreneren.feature.activitywizard.domain.model.LearningCatalogItem
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TeamFunction
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TrainingLearningConfig
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CoachActivityWizardUiStateTest {
     @Test
-    fun `create activity can continue when title and category are selected`() {
+    fun `training activity requires a complete learning configuration`() {
         val state = CoachActivityWizardUiState(
             activityInputMode = CoachActivityInputMode.CreateNew,
             title = "Onsdagstrening",
@@ -14,7 +17,17 @@ class CoachActivityWizardUiStateTest {
         )
 
         assertTrue(state.isCreateActivityFormVisible)
-        assertTrue(state.canContinueFromActivityType)
+        assertFalse(state.canContinueFromActivityType)
+
+        val configuredState = state.copy(
+            trainingLearningConfig = TrainingLearningConfig(
+                teamFunction = TeamFunction.ATTACK,
+                theme = LearningCatalogItem("theme", "Angrep", null, null, TeamFunction.ATTACK),
+                objectives = listOf(LearningCatalogItem("objective", "Avslutning", null, "theme", null)),
+            ),
+        )
+
+        assertTrue(configuredState.canContinueFromActivityType)
     }
 
     @Test

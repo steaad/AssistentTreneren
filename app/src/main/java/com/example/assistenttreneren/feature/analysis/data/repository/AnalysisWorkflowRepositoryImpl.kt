@@ -2,6 +2,7 @@ package com.example.assistenttreneren.feature.analysis.data.repository
 
 import com.example.assistenttreneren.feature.analysis.data.mapper.toAnalysisCandidate
 import com.example.assistenttreneren.feature.analysis.data.mapper.toAnalysisJob
+import com.example.assistenttreneren.feature.analysis.data.mapper.toAnalysisSummary
 import com.example.assistenttreneren.feature.analysis.data.remote.AnalysisApi
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowError
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowRepository
@@ -18,6 +19,9 @@ class AnalysisWorkflowRepositoryImpl @Inject constructor(private val api: Analys
     override suspend fun getCandidates() = request { api.getAnalysisCandidates().map { it.toAnalysisCandidate() } }
     override suspend fun startAnalysis(activityId: String) = requestForId(activityId) { api.startAnalysis(activityId).toAnalysisJob() }
     override suspend fun getAnalysis(analysisId: String) = requestForId(analysisId) { api.getAnalysis(analysisId).toAnalysisJob() }
+    override suspend fun getActivityAnalyses(activityId: String) = requestForId(activityId) {
+        api.getActivityAnalyses(activityId).map { it.toAnalysisSummary() }
+    }
 
     private suspend fun <T> requestForId(id: String, block: suspend () -> T): AnalysisWorkflowResult<T> =
         if (id.isBlank()) AnalysisWorkflowResult.Failure(AnalysisWorkflowError.InvalidInput) else request(block)

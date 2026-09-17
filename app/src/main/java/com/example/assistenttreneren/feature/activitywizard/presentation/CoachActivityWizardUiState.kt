@@ -1,6 +1,9 @@
 package com.example.assistenttreneren.feature.activitywizard.presentation
 
 import com.example.assistenttreneren.feature.activitywizard.domain.model.MatchRosterSuggestion
+import com.example.assistenttreneren.feature.activitywizard.domain.model.LearningCatalogItem
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TeamFunction
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TrainingLearningConfig
 
 data class CoachActivityWizardUiState(
     val currentStep: CoachActivityWizardStep = CoachActivityWizardStep.ActivityType,
@@ -19,6 +22,13 @@ data class CoachActivityWizardUiState(
     val isLoadingMatchRosterSuggestions: Boolean = false,
     val matchRosterSuggestionsErrorMessage: String? = null,
     val matchHalfDurationMinutes: Int = 45,
+    val trainingLearningConfig: TrainingLearningConfig = TrainingLearningConfig(),
+    val teamFunctions: List<TeamFunction> = emptyList(),
+    val themes: List<LearningCatalogItem> = emptyList(),
+    val subthemes: List<LearningCatalogItem> = emptyList(),
+    val learningObjectives: List<LearningCatalogItem> = emptyList(),
+    val isLoadingTrainingCatalog: Boolean = false,
+    val trainingLearningErrorMessage: String? = null,
 ) {
     val totalSteps: Int = CoachActivityWizardStep.entries.size
 
@@ -33,8 +43,8 @@ data class CoachActivityWizardUiState(
 
     val canContinueFromActivityType: Boolean
         get() = !isLoadingActivities && !isCreatingActivity && !isUpdatingExistingActivity && when (activityInputMode) {
-            CoachActivityInputMode.CreateNew -> title.isNotBlank() && activityCategory != null && (activityCategory != "Kamp" || matchRoster.isNotEmpty())
-            CoachActivityInputMode.Existing -> selectedActivityId != null && selectedExistingActivity != null && (activityCategory != "Kamp" || matchRoster.isNotEmpty())
+            CoachActivityInputMode.CreateNew -> title.isNotBlank() && activityCategory != null && (activityCategory != "Kamp" || matchRoster.isNotEmpty()) && (activityCategory != "Trening" || trainingLearningConfig.isComplete)
+            CoachActivityInputMode.Existing -> selectedActivityId != null && selectedExistingActivity != null && (activityCategory != "Kamp" || matchRoster.isNotEmpty()) && (activityCategory != "Trening" || trainingLearningConfig.isComplete)
             null -> false
         }
 }

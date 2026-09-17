@@ -8,6 +8,10 @@ import com.example.assistenttreneren.core.auth.SessionManager
 import com.example.assistenttreneren.core.auth.TokenStorage
 import com.example.assistenttreneren.feature.activitywizard.domain.model.CoachActivity
 import com.example.assistenttreneren.feature.activitywizard.domain.model.MatchRosterSuggestion
+import com.example.assistenttreneren.feature.activitywizard.domain.model.LearningCatalogItem
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TeamFunction
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TrainingLearningConfig
+import com.example.assistenttreneren.feature.activitywizard.domain.repository.TrainingLearningRepository
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityRepository
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.CoachActivityResult
 import com.example.assistenttreneren.feature.activitywizard.domain.repository.LocalCoachActivityRepository
@@ -17,6 +21,9 @@ import com.example.assistenttreneren.feature.activitywizard.domain.usecase.Updat
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetMatchRosterSuggestionsUseCase
 import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateMatchRosterUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetTrainingLearningCatalogUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.GetTrainingLearningConfigUseCase
+import com.example.assistenttreneren.feature.activitywizard.domain.usecase.UpdateTrainingLearningConfigUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -41,6 +48,11 @@ class CoachActivityWizardViewModelTest {
         viewModel.onCreateNewActivityClicked()
         viewModel.onTitleChanged("  Onsdagstrening  ")
         viewModel.onActivityCategorySelected("Trening")
+        val theme = LearningCatalogItem("theme-1", "Angrep", null, null, TeamFunction.ATTACK)
+        val objective = LearningCatalogItem("objective-1", "Gjennombrudd", null, "theme-1", null)
+        viewModel.onTeamFunctionSelected(TeamFunction.ATTACK)
+        viewModel.onThemeSelected(theme)
+        viewModel.onLearningObjectivesSelected(listOf(objective))
         viewModel.onContinueFromActivityType { navigateCount++ }
         runCurrent()
 
@@ -72,6 +84,58 @@ class CoachActivityWizardViewModelTest {
     }
 
     @Test
+    fun `saves learning config for existing training when title is unchanged`() = runTest {
+        val existing = CoachActivity("activity-1", "Trening", "Onsdagstrening", emptyList())
+        val repository = FakeCoachActivityRepository(activities = listOf(existing))
+        val learningRepository = FakeTrainingLearningRepository()
+        val viewModel = viewModel(repository, FakeLocalCoachActivityRepository(), learningRepository)
+        val theme = LearningCatalogItem("theme-1", "Angrep", null, null, TeamFunction.ATTACK)
+        val objective = LearningCatalogItem("objective-1", "Gjennombrudd", null, "theme-1", null)
+        var navigateCount = 0
+
+        viewModel.onSelectExistingActivityClicked()
+        runCurrent()
+        viewModel.onExistingActivitySelected(existing.activityId)
+        viewModel.onTeamFunctionSelected(TeamFunction.ATTACK)
+        viewModel.onThemeSelected(theme)
+        viewModel.onLearningObjectivesSelected(listOf(objective))
+        viewModel.onContinueFromActivityType { navigateCount++ }
+        runCurrent()
+
+        assertEquals("activity-1", learningRepository.updatedActivityId)
+        assertEquals(listOf("objective-1"), learningRepository.updatedConfig?.objectives?.map { it.id })
+        assertEquals(null, repository.updateTitle)
+        assertEquals(1, navigateCount)
+    }
+
+    @Test
+    fun `loads learning config when existing training is selected`() = runTest {
+        val existing = CoachActivity("activity-1", "Trening", "Onsdagstrening", emptyList())
+        val theme = LearningCatalogItem("theme-2", "Innleggsangrep", null, null, TeamFunction.ATTACK)
+        val subtheme = LearningCatalogItem("subtheme-2", "Skape sjanser", null, "theme-2", null)
+        val objective = LearningCatalogItem("objective-2", "Skape overtall", null, "theme-2", null)
+        val learningRepository = FakeTrainingLearningRepository(
+            storedConfig = TrainingLearningConfig(TeamFunction.ATTACK, theme, subtheme, listOf(objective)),
+        )
+        val viewModel = viewModel(
+            FakeCoachActivityRepository(activities = listOf(existing)),
+            FakeLocalCoachActivityRepository(),
+            learningRepository,
+        )
+
+        viewModel.onSelectExistingActivityClicked()
+        runCurrent()
+        viewModel.onExistingActivitySelected(existing.activityId)
+        runCurrent()
+
+        assertEquals("activity-1", learningRepository.loadedActivityId)
+        assertEquals(TeamFunction.ATTACK, viewModel.uiState.value.trainingLearningConfig.teamFunction)
+        assertEquals("theme-2", viewModel.uiState.value.trainingLearningConfig.theme?.id)
+        assertEquals("subtheme-2", viewModel.uiState.value.trainingLearningConfig.subtheme?.id)
+        assertEquals(listOf("objective-2"), viewModel.uiState.value.trainingLearningConfig.objectives.map { it.id })
+    }
+
+    @Test
     fun `loads and applies roster suggestions for a new match`() = runTest {
         val suggestion = MatchRosterSuggestion(
             sourceActivityId = "previous-match",
@@ -92,9 +156,27 @@ class CoachActivityWizardViewModelTest {
         assertEquals(listOf("Noah", "Olav"), viewModel.uiState.value.matchRoster)
     }
 
+    @Test
+    fun `training selections reset dependent values and require an objective`() = runTest {
+        val viewModel = viewModel(FakeCoachActivityRepository(), FakeLocalCoachActivityRepository())
+        val theme = LearningCatalogItem("theme-1", "Spille ut bakfra", null, null, TeamFunction.ATTACK)
+        val objective = LearningCatalogItem("objective-1", "Skape overtall", null, "theme-1", null)
+
+        viewModel.onCreateNewActivityClicked()
+        viewModel.onActivityCategorySelected("Trening")
+        viewModel.onTeamFunctionSelected(TeamFunction.ATTACK)
+        viewModel.onThemeSelected(theme)
+        viewModel.onLearningObjectivesSelected(listOf(objective))
+
+        assertTrue(viewModel.uiState.value.trainingLearningConfig.isComplete)
+        viewModel.onTeamFunctionSelected(TeamFunction.DEFENCE)
+        assertTrue(viewModel.uiState.value.trainingLearningConfig.objectives.isEmpty())
+    }
+
     private fun viewModel(
         repository: FakeCoachActivityRepository,
         localRepository: FakeLocalCoachActivityRepository,
+        trainingLearningRepository: FakeTrainingLearningRepository = FakeTrainingLearningRepository(),
     ) = CoachActivityWizardViewModel(
         GetCoachActivitiesUseCase(repository),
         CreateCoachActivityUseCase(repository),
@@ -102,6 +184,9 @@ class CoachActivityWizardViewModelTest {
         GetMatchRosterUseCase(repository),
         GetMatchRosterSuggestionsUseCase(repository),
         UpdateMatchRosterUseCase(repository),
+        GetTrainingLearningCatalogUseCase(trainingLearningRepository),
+        GetTrainingLearningConfigUseCase(trainingLearningRepository),
+        UpdateTrainingLearningConfigUseCase(trainingLearningRepository),
         localRepository,
         SessionManager(FakeTokenStorage(), JwtDecoder(), FakeTokenRefresher()),
     )
@@ -123,6 +208,27 @@ class CoachActivityWizardViewModelTest {
         override suspend fun getMatchRoster(activityId: String) = CoachActivityResult.Success(emptyList<String>())
         override suspend fun getMatchRosterSuggestions() = CoachActivityResult.Success(matchRosterSuggestions)
         override suspend fun updateMatchRoster(activityId: String, playerNames: List<String>) = CoachActivityResult.Success(playerNames)
+    }
+
+    private class FakeTrainingLearningRepository(
+        private val storedConfig: TrainingLearningConfig = TrainingLearningConfig(),
+    ) : TrainingLearningRepository {
+        var updatedActivityId: String? = null
+        var updatedConfig: com.example.assistenttreneren.feature.activitywizard.domain.model.TrainingLearningConfig? = null
+        var loadedActivityId: String? = null
+        override suspend fun getTeamFunctions() = CoachActivityResult.Success(TeamFunction.entries)
+        override suspend fun getThemes() = CoachActivityResult.Success(emptyList<LearningCatalogItem>())
+        override suspend fun getSubthemes(themeId: String) = CoachActivityResult.Success(emptyList<LearningCatalogItem>())
+        override suspend fun getLearningObjectives(themeId: String) = CoachActivityResult.Success(emptyList<LearningCatalogItem>())
+        override suspend fun getTrainingLearningConfig(activityId: String): CoachActivityResult<TrainingLearningConfig> {
+            loadedActivityId = activityId
+            return CoachActivityResult.Success(storedConfig)
+        }
+        override suspend fun updateTrainingLearningConfig(activityId: String, config: com.example.assistenttreneren.feature.activitywizard.domain.model.TrainingLearningConfig): CoachActivityResult<Unit> {
+            updatedActivityId = activityId
+            updatedConfig = config
+            return CoachActivityResult.Success(Unit)
+        }
     }
 
     private class FakeLocalCoachActivityRepository : LocalCoachActivityRepository {

@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +46,8 @@ import com.example.assistenttreneren.feature.activitywizard.presentation.Existin
 import com.example.assistenttreneren.feature.activitywizard.domain.model.MatchRosterSuggestion
 import com.example.assistenttreneren.feature.activitywizard.presentation.RecordingUiModel
 import com.example.assistenttreneren.feature.activitywizard.presentation.components.CoachActivityWizardScaffold
+import com.example.assistenttreneren.feature.activitywizard.domain.model.LearningCatalogItem
+import com.example.assistenttreneren.feature.activitywizard.domain.model.TeamFunction
 
 @Composable
 fun ActivityTypeStepScreen(
@@ -58,11 +61,33 @@ fun ActivityTypeStepScreen(
     onMatchRosterChanged: (List<String>) -> Unit,
     onMatchRosterSuggestionSelected: (List<String>) -> Unit,
     onMatchHalfDurationChanged: (Int) -> Unit,
+    onTeamFunctionSelected: (TeamFunction) -> Unit,
+    onThemeSelected: (LearningCatalogItem) -> Unit,
+    onSubthemeSelected: (LearningCatalogItem?) -> Unit,
+    onLearningObjectivesSelected: (List<LearningCatalogItem>) -> Unit,
     onRetryLoadExistingActivitiesClicked: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateNext: () -> Unit,
 ) {
     var showRosterDialog by remember { mutableStateOf(false) }
+    val trainingLearningContent: @Composable () -> Unit = {
+        TrainingLearningConfigSection(
+            selectedTeamFunction = uiState.trainingLearningConfig.teamFunction,
+            selectedTheme = uiState.trainingLearningConfig.theme,
+            selectedSubtheme = uiState.trainingLearningConfig.subtheme,
+            selectedObjectives = uiState.trainingLearningConfig.objectives,
+            teamFunctions = uiState.teamFunctions,
+            themes = uiState.themes,
+            subthemes = uiState.subthemes,
+            learningObjectives = uiState.learningObjectives,
+            isLoading = uiState.isLoadingTrainingCatalog,
+            errorMessage = uiState.trainingLearningErrorMessage,
+            onTeamFunctionSelected = onTeamFunctionSelected,
+            onThemeSelected = onThemeSelected,
+            onSubthemeSelected = onSubthemeSelected,
+            onLearningObjectivesSelected = onLearningObjectivesSelected,
+        )
+    }
     LaunchedEffect(Unit) {
         onStepOpened(CoachActivityWizardStep.ActivityType)
     }
@@ -111,6 +136,7 @@ fun ActivityTypeStepScreen(
                 onEditMatchRoster = { showRosterDialog = true },
                 matchHalfDurationMinutes = uiState.matchHalfDurationMinutes,
                 onMatchHalfDurationChanged = onMatchHalfDurationChanged,
+                trainingLearningContent = if (uiState.activityCategory == "Trening") trainingLearningContent else null,
             )
         } else if (uiState.isExistingActivityFormVisible) {
             ExistingActivityForm(
@@ -127,6 +153,7 @@ fun ActivityTypeStepScreen(
                 onEditMatchRoster = { showRosterDialog = true },
                 matchHalfDurationMinutes = uiState.matchHalfDurationMinutes,
                 onMatchHalfDurationChanged = onMatchHalfDurationChanged,
+                trainingLearningContent = if (uiState.activityCategory == "Trening") trainingLearningContent else null,
             )
         }
 
@@ -182,6 +209,7 @@ private fun CreateActivityForm(
     onEditMatchRoster: () -> Unit,
     matchHalfDurationMinutes: Int,
     onMatchHalfDurationChanged: (Int) -> Unit,
+    trainingLearningContent: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val categories = listOf(
@@ -203,16 +231,6 @@ private fun CreateActivityForm(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(
-                value = title,
-                onValueChange = onTitleChanged,
-                label = {
-                    Text(text = stringResource(R.string.wizard_activity_title_label))
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -235,10 +253,22 @@ private fun CreateActivityForm(
                     }
                 }
             }
+            if (selectedActivityCategory != null) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = onTitleChanged,
+                    label = {
+                        Text(text = stringResource(R.string.wizard_activity_title_label))
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             if (selectedActivityCategory == "Kamp") {
                 MatchRosterButton(matchRoster, onEditMatchRoster)
                 MatchHalfDurationDropdown(matchHalfDurationMinutes, onMatchHalfDurationChanged)
             }
+            trainingLearningContent?.invoke()
         }
     }
 }
@@ -258,6 +288,7 @@ private fun ExistingActivityForm(
     onEditMatchRoster: () -> Unit,
     matchHalfDurationMinutes: Int,
     onMatchHalfDurationChanged: (Int) -> Unit,
+    trainingLearningContent: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showActivityPicker by remember { mutableStateOf(false) }
@@ -351,6 +382,7 @@ private fun ExistingActivityForm(
                 MatchRosterButton(matchRoster, onEditMatchRoster)
                 MatchHalfDurationDropdown(matchHalfDurationMinutes, onMatchHalfDurationChanged)
             }
+            trainingLearningContent?.invoke()
         }
     }
     if (showActivityPicker) {
@@ -413,6 +445,86 @@ private fun MatchHalfDurationDropdown(
 }
 
 private val matchHalfDurationOptions = listOf(1, 20, 25, 30, 35, 40, 45)
+
+@Composable
+private fun TrainingLearningConfigSection(
+    selectedTeamFunction: TeamFunction?,
+    selectedTheme: LearningCatalogItem?,
+    selectedSubtheme: LearningCatalogItem?,
+    selectedObjectives: List<LearningCatalogItem>,
+    teamFunctions: List<TeamFunction>,
+    themes: List<LearningCatalogItem>,
+    subthemes: List<LearningCatalogItem>,
+    learningObjectives: List<LearningCatalogItem>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onTeamFunctionSelected: (TeamFunction) -> Unit,
+    onThemeSelected: (LearningCatalogItem) -> Unit,
+    onSubthemeSelected: (LearningCatalogItem?) -> Unit,
+    onLearningObjectivesSelected: (List<LearningCatalogItem>) -> Unit,
+) {
+    var picker by remember { mutableStateOf<TrainingLearningPicker?>(null) }
+    val filteredThemes = themes.filter { it.teamFunction == selectedTeamFunction }
+    val filteredObjectives = learningObjectives.filter { objective ->
+        if (selectedSubtheme != null) {
+            objective.parentId == selectedSubtheme.id
+        } else {
+            objective.parentId == null || objective.parentId == selectedTheme?.id
+        }
+    }
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Læringsfokus", style = MaterialTheme.typography.titleMedium)
+        if (isLoading) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { CircularProgressIndicator(modifier = Modifier.height(20.dp)); Text("Henter læringskatalog...") }
+        LearningPickerButton("Lagfunksjon", selectedTeamFunction?.label() ?: "Velg lagfunksjon", enabled = !isLoading && teamFunctions.isNotEmpty()) { picker = TrainingLearningPicker.TeamFunction }
+        LearningPickerButton("Hovedtema", selectedTheme?.name ?: "Velg hovedtema", enabled = selectedTeamFunction != null && !isLoading) { picker = TrainingLearningPicker.Theme }
+        LearningPickerButton("Undertema", selectedSubtheme?.name ?: "Ingen undertema", enabled = selectedTheme != null && !isLoading) { picker = TrainingLearningPicker.Subtheme }
+        LearningPickerButton("Læringsmål", if (selectedObjectives.isEmpty()) "Velg ett eller flere læringsmål" else "${selectedObjectives.size} læringsmål valgt", enabled = selectedTheme != null && !isLoading) { picker = TrainingLearningPicker.Objectives }
+        errorMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+    }
+    when (picker) {
+        TrainingLearningPicker.TeamFunction -> SelectionListDialog("Velg lagfunksjon", teamFunctions.map { SelectionListItem(it.label()) }, { picker = null }) { index -> onTeamFunctionSelected(teamFunctions[index]); picker = null }
+        TrainingLearningPicker.Theme -> SelectionListDialog("Velg hovedtema", filteredThemes.map { SelectionListItem(it.name, it.description) }, { picker = null }) { index -> onThemeSelected(filteredThemes[index]); picker = null }
+        TrainingLearningPicker.Subtheme -> SelectionListDialog("Velg undertema", listOf(SelectionListItem("Ingen undertema")) + subthemes.map { SelectionListItem(it.name, it.description) }, { picker = null }) { index -> onSubthemeSelected(subthemes.getOrNull(index - 1)); picker = null }
+        TrainingLearningPicker.Objectives -> LearningObjectivesDialog(filteredObjectives, selectedObjectives, { picker = null }, onLearningObjectivesSelected)
+        null -> Unit
+    }
+}
+
+@Composable
+private fun LearningPickerButton(label: String, value: String, enabled: Boolean, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) { Text(label, style = MaterialTheme.typography.labelSmall); Text(value, style = MaterialTheme.typography.bodyLarge) }
+        Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
+    }
+}
+
+@Composable
+private fun LearningObjectivesDialog(
+    objectives: List<LearningCatalogItem>,
+    selectedObjectives: List<LearningCatalogItem>,
+    onDismiss: () -> Unit,
+    onSave: (List<LearningCatalogItem>) -> Unit,
+) {
+    var selectedIds by remember(selectedObjectives) { mutableStateOf(selectedObjectives.map { it.id }.toSet()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Velg læringsmål") },
+        text = { LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) { itemsIndexed(objectives) { _, objective -> Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = objective.id in selectedIds, onCheckedChange = { checked -> selectedIds = if (checked) selectedIds + objective.id else selectedIds - objective.id }); Column { Text(objective.name); objective.description?.let { Text(it, style = MaterialTheme.typography.bodySmall) } } } } } },
+        confirmButton = { Button(onClick = { onSave(objectives.filter { it.id in selectedIds }); onDismiss() }) { Text("Lagre") } },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Avbryt") } },
+    )
+}
+
+private enum class TrainingLearningPicker { TeamFunction, Theme, Subtheme, Objectives }
+
+private fun TeamFunction.label(): String = when (this) {
+    TeamFunction.ATTACK -> "Angrep"
+    TeamFunction.DEFENCE -> "Forsvar"
+    TeamFunction.ATTACK_TRANSITION -> "Angrepsovergang"
+    TeamFunction.DEFENCE_TRANSITION -> "Forsvarsovergang"
+    TeamFunction.OFFENSIVE_SET_PIECES -> "Offensive dødballer"
+    TeamFunction.DEFENSIVE_SET_PIECES -> "Defensive dødballer"
+}
 
 @Composable
 private fun MatchRosterDialog(

@@ -3,11 +3,14 @@ package com.example.assistenttreneren.feature.analysis.presentation
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisCandidate
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJobStatus
+import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisSummary
 
 data class AnalysisUiState(
     val isLoadingCandidates: Boolean = false,
     val candidates: List<AnalysisCandidate> = emptyList(),
     val completedAnalyses: List<AnalysisCandidate> = emptyList(),
+    val activityAnalyses: Map<String, List<AnalysisSummary>> = emptyMap(),
+    val loadingActivityAnalysisIds: Set<String> = emptySet(),
     val selectedActivityId: String? = null,
     val isStartingAnalysis: Boolean = false,
     val activeAnalysis: AnalysisJob? = null,

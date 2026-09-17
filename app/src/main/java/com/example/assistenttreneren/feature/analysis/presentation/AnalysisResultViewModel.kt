@@ -4,10 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchAnalysisResultDto
+import com.example.assistenttreneren.feature.analysis.data.dto.TrainingAnalysisResultDto
 import com.example.assistenttreneren.feature.analysis.data.mapper.toMatchAnalysisResult
+import com.example.assistenttreneren.feature.analysis.data.mapper.toTrainingAnalysisResult
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJobStatus
 import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob
 import com.example.assistenttreneren.feature.analysis.domain.model.MatchAnalysisResult
+import com.example.assistenttreneren.feature.analysis.domain.model.TrainingAnalysisResult
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowError
 import com.example.assistenttreneren.feature.analysis.domain.repository.AnalysisWorkflowResult
 import com.example.assistenttreneren.feature.analysis.domain.usecase.GetAnalysisUseCase
@@ -26,6 +29,7 @@ data class AnalysisResultUiState(
     val isLoading: Boolean = true,
     val analysisMetadata: AnalysisJob? = null,
     val matchResult: MatchAnalysisResult? = null,
+    val trainingResult: TrainingAnalysisResult? = null,
     val unsupportedResult: JsonElement? = null,
     val errorMessage: String? = null,
 )
@@ -69,26 +73,32 @@ class AnalysisResultViewModel @Inject constructor(
             return
         }
 
-        if (!analysis.promptVersion.startsWith(MATCH_ANALYSIS_PROMPT_PREFIX)) {
-            _uiState.update {
+        when {
+            analysis.activityCategory == TRAINING_ACTIVITY_CATEGORY -> showTrainingAnalysis(analysis)
+            analysis.promptVersion.startsWith(MATCH_ANALYSIS_PROMPT_PREFIX) -> showMatchAnalysis(analysis)
+            else -> _uiState.update {
                 it.copy(isLoading = false, analysisMetadata = analysis, unsupportedResult = analysis.result)
             }
-            return
         }
+    }
 
+    private fun showMatchAnalysis(analysis: AnalysisJob) {
         val matchResult = runCatching {
-            json.decodeFromJsonElement<MatchAnalysisResultDto>(analysis.result).toMatchAnalysisResult()
+            json.decodeFromJsonElement<MatchAnalysisResultDto>(requireNotNull(analysis.result)).toMatchAnalysisResult()
         }.getOrNull()
-
         _uiState.update {
-            if (matchResult == null) {
-                it.copy(
-                    isLoading = false,
-                    errorMessage = "Kunne ikke vise resultatet fra analysen.",
-                )
-            } else {
-                it.copy(isLoading = false, analysisMetadata = analysis, matchResult = matchResult)
-            }
+            if (matchResult == null) it.copy(isLoading = false, errorMessage = "Kunne ikke vise resultatet fra analysen.")
+            else it.copy(isLoading = false, analysisMetadata = analysis, matchResult = matchResult)
+        }
+    }
+
+    private fun showTrainingAnalysis(analysis: AnalysisJob) {
+        val trainingResult = runCatching {
+            json.decodeFromJsonElement<TrainingAnalysisResultDto>(requireNotNull(analysis.result)).toTrainingAnalysisResult()
+        }.getOrNull()
+        _uiState.update {
+            if (trainingResult == null) it.copy(isLoading = false, errorMessage = "Kunne ikke vise treningsanalysen.")
+            else it.copy(isLoading = false, analysisMetadata = analysis, trainingResult = trainingResult)
         }
     }
 
@@ -103,6 +113,7 @@ class AnalysisResultViewModel @Inject constructor(
     private companion object {
         const val ANALYSIS_ID_ARGUMENT = "analysisId"
         const val MATCH_ANALYSIS_PROMPT_PREFIX = "match-analysis"
+        const val TRAINING_ACTIVITY_CATEGORY = "Trening"
         val json = Json { ignoreUnknownKeys = true }
     }
 }

@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
@@ -46,10 +47,25 @@ class AnalysisResultViewModelTest {
         assertNotNull(viewModel.uiState.value.unsupportedResult)
     }
 
+    @Test
+    fun `maps completed training analysis from training category`() = runTest {
+        val viewModel = AnalysisResultViewModel(
+            SavedStateHandle(mapOf("analysisId" to "analysis-1")),
+            GetAnalysisUseCase(FakeRepository(completedJob(trainingResultJson, activityCategory = "Trening"))),
+        )
+        runCurrent()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals("Treningsanalyse", viewModel.uiState.value.trainingResult?.executiveSummary?.title)
+        assertEquals("Spillforståelse", viewModel.uiState.value.trainingResult?.training?.learningProgressions?.single()?.title)
+        assertNull(viewModel.uiState.value.matchResult)
+    }
+
     private class FakeRepository(private val job: AnalysisJob) : AnalysisWorkflowRepository {
         override suspend fun getCandidates(): AnalysisWorkflowResult<List<AnalysisCandidate>> = error("Not used")
         override suspend fun startAnalysis(activityId: String): AnalysisWorkflowResult<AnalysisJob> = error("Not used")
         override suspend fun getAnalysis(analysisId: String) = AnalysisWorkflowResult.Success(job)
+        override suspend fun getActivityAnalyses(activityId: String) = AnalysisWorkflowResult.Success(emptyList<com.example.assistenttreneren.feature.analysis.domain.model.AnalysisSummary>())
     }
 
     private companion object {
@@ -57,7 +73,15 @@ class AnalysisResultViewModelTest {
             """{"executiveSummary":{"title":"Kampanalyse mot Nord","summary":"Sammendrag","keyTakeaways":["Intensitet"],"positiveDevelopments":[],"mainConcerns":[]},"playerDevelopmentSummary":{"overallSummary":"Utvikling","teamDevelopmentPriorities":[],"players":[]},"patterns":[{"title":"Press","description":"Høyt press","relatedEventIds":["event-1"],"relatedTranscriptionIds":["transcription-1"],"relatedPlayerNames":["Olav"]}],"priorities":[],"recommendations":[],"uncertainties":[],"categoryAnalysis":{"match":{"summary":{"overallMatchAssessment":"God kamp","matchStory":"Kampfortelling","mainStrengths":[],"mainDevelopmentAreas":[],"recommendedFollowUp":[]},"phaseComparisons":[],"playerFollowUp":[],"firstHalf":[],"halftime":[],"secondHalf":[],"evaluation":[]}}}""",
         )
 
-        fun completedJob(result: kotlinx.serialization.json.JsonElement, promptVersion: String = "match-analysis-v1") = AnalysisJob(
+        val trainingResultJson = Json.parseToJsonElement(
+            """{"executiveSummary":{"title":"Treningsanalyse","summary":"Sammendrag","keyTakeaways":[],"positiveDevelopments":[],"mainConcerns":[]},"learningSummary":{"statedLearningObjectives":[],"whatPlayersAppearToUnderstand":[],"whatPlayersStillStruggleWith":[],"nextLearningPriorities":[]},"teamDevelopmentSummary":{"overallSummary":"Lag","players":[]},"playerDevelopmentSummary":{"overallSummary":"Spillere","players":[]},"patterns":[],"priorities":[],"recommendations":[],"uncertainties":[],"categoryAnalysis":{"training":{"summary":"God økt","exercise":null,"game":null,"evaluation":null,"learningProgressions":[{"title":"Spillforståelse","description":"Bedre valg","relatedEventIds":[],"relatedTranscriptionIds":[],"relatedPlayerNames":[]}],"playerFollowUp":[]}}}""",
+        )
+
+        fun completedJob(
+            result: kotlinx.serialization.json.JsonElement,
+            promptVersion: String = "match-analysis-v1",
+            activityCategory: String? = null,
+        ) = AnalysisJob(
             analysisId = "analysis-1",
             activityId = "activity-1",
             status = AnalysisJobStatus.COMPLETED,
@@ -68,6 +92,7 @@ class AnalysisResultViewModelTest {
             completedAt = "2026-09-06T10:01:00Z",
             errorMessage = null,
             result = result,
+            activityCategory = activityCategory,
         )
     }
 }

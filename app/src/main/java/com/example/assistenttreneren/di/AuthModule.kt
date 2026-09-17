@@ -14,6 +14,8 @@ import com.example.assistenttreneren.feature.login.data.repository.AuthRepositor
 import com.example.assistenttreneren.feature.login.domain.repository.AuthRepository
 import com.example.assistenttreneren.feature.settings.data.repository.UserManagementRepositoryImpl
 import com.example.assistenttreneren.feature.settings.domain.repository.UserManagementRepository
+import com.example.assistenttreneren.feature.settings.data.repository.LearningCatalogManagementRepositoryImpl
+import com.example.assistenttreneren.feature.settings.domain.repository.LearningCatalogManagementRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -46,6 +48,11 @@ abstract class AuthModule {
     abstract fun bindUserManagementRepository(
         userManagementRepositoryImpl: UserManagementRepositoryImpl,
     ): UserManagementRepository
+
+    @Binds
+    abstract fun bindLearningCatalogManagementRepository(
+        repository: LearningCatalogManagementRepositoryImpl,
+    ): LearningCatalogManagementRepository
 
     companion object {
         @Provides

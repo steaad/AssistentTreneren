@@ -55,6 +55,7 @@ import com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJobSt
 fun AnalysisScreen(
     onNavigateBack: () -> Unit,
     onShowAnalysis: (String) -> Unit,
+    onOpenTrainingLearningConfig: () -> Unit,
     viewModel: AnalysisViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
 ) {
@@ -90,6 +91,7 @@ fun AnalysisScreen(
             onChooseActivity = { showActivityPicker = true },
             onGenerateAnalysis = viewModel::startSelectedAnalysis,
             onShowAnalysis = onShowAnalysis,
+            onOpenTrainingLearningConfig = onOpenTrainingLearningConfig,
             modifier = Modifier.padding(paddingValues),
         )
     }
@@ -114,6 +116,7 @@ private fun AnalysisContent(
     onChooseActivity: () -> Unit,
     onGenerateAnalysis: () -> Unit,
     onShowAnalysis: (String) -> Unit,
+    onOpenTrainingLearningConfig: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -149,14 +152,14 @@ private fun AnalysisContent(
         val selectedCandidate = uiState.selectedCandidate
         if (selectedCandidate != null) {
             val candidate = selectedCandidate
-            val displayedAnalysis = uiState.activeAnalysis ?: candidate.latestAnalysis
-            CandidateStatusCard(candidate, displayedAnalysis)
-            displayedAnalysis?.let { AnalysisMetadataCard(it) }
+            CandidateStatusCard(candidate)
+            uiState.activeAnalysis?.let { AnalysisMetadataCard(it) }
             AnalysisAction(
                 uiState = uiState,
                 candidate = candidate,
                 onGenerateAnalysis = onGenerateAnalysis,
                 onShowAnalysis = onShowAnalysis,
+                onOpenTrainingLearningConfig = onOpenTrainingLearningConfig,
             )
         } else if (!uiState.isLoadingCandidates) {
             Text("Ingen aktiviteter er tilgjengelige for analyse.")
@@ -185,12 +188,8 @@ private fun AnalysisContent(
 @Composable
 private fun CandidateStatusCard(
     candidate: AnalysisCandidate,
-    analysis: com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob?,
 ) {
-    val isProcessing = analysis?.status in setOf(
-        AnalysisJobStatus.QUEUED,
-        AnalysisJobStatus.PROCESSING,
-    ) || candidate.state == AnalysisCandidateState.PROCESSING
+    val isProcessing = candidate.state == AnalysisCandidateState.PROCESSING
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -203,7 +202,7 @@ private fun CandidateStatusCard(
                 if (isProcessing) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 }
-                Text(candidate.displayStatus(analysis), fontWeight = FontWeight.SemiBold)
+                Text(candidate.displayStatus(), fontWeight = FontWeight.SemiBold)
             }
             Text(candidate.message)
         }
@@ -216,10 +215,10 @@ private fun AnalysisAction(
     candidate: AnalysisCandidate,
     onGenerateAnalysis: () -> Unit,
     onShowAnalysis: (String) -> Unit,
+    onOpenTrainingLearningConfig: () -> Unit,
 ) {
-    val latestStatus = candidate.latestAnalysis?.status
     when {
-        latestStatus == AnalysisJobStatus.COMPLETED -> {
+        candidate.state == AnalysisCandidateState.COMPLETED -> {
             Button(
                 onClick = { candidate.latestAnalysis?.analysisId?.let(onShowAnalysis) },
                 modifier = Modifier.fillMaxWidth(),
@@ -228,8 +227,7 @@ private fun AnalysisAction(
             }
         }
 
-        uiState.isAnalysisInProgress || uiState.isStartingAnalysis ||
-            latestStatus in setOf(AnalysisJobStatus.QUEUED, AnalysisJobStatus.PROCESSING) -> {
+        uiState.isAnalysisInProgress || uiState.isStartingAnalysis || candidate.state == AnalysisCandidateState.PROCESSING -> {
             Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.width(8.dp))
@@ -240,6 +238,18 @@ private fun AnalysisAction(
         candidate.state == AnalysisCandidateState.READY -> {
             Button(onClick = onGenerateAnalysis, modifier = Modifier.fillMaxWidth()) {
                 Text("Generer analyse")
+            }
+        }
+
+        candidate.state == AnalysisCandidateState.READY_FOR_REANALYSIS -> {
+            Button(onClick = onGenerateAnalysis, modifier = Modifier.fillMaxWidth()) {
+                Text("Oppdater analyse")
+            }
+        }
+
+        candidate.state == AnalysisCandidateState.LEARNING_CONFIG_REQUIRED -> {
+            Button(onClick = onOpenTrainingLearningConfig, modifier = Modifier.fillMaxWidth()) {
+                Text("Åpne læringsfokus")
             }
         }
 
@@ -297,21 +307,14 @@ private fun ActivityPickerDialog(
 private fun AnalysisCandidateState.toDisplayText(): String =
     when (this) {
         AnalysisCandidateState.READY -> "Klar for analyse"
+        AnalysisCandidateState.READY_FOR_REANALYSIS -> "Klar for oppdatert analyse"
         AnalysisCandidateState.NO_AUDIO_RECORDINGS -> "Ingen lydopptak tilgjengelig for analyse"
         AnalysisCandidateState.TRANSCRIPTION_PENDING -> "Transkripsjon pågår"
+        AnalysisCandidateState.LEARNING_CONFIG_REQUIRED -> "Læringsfokus mangler"
         AnalysisCandidateState.REVIEW_REQUIRED -> "Trenger gjennomgang"
         AnalysisCandidateState.INPUT_INVALID -> "Ugyldig grunnlag"
         AnalysisCandidateState.PROCESSING -> "Analyse pågår"
         AnalysisCandidateState.COMPLETED -> "Analyse fullført"
     }
 
-private fun AnalysisCandidate.displayStatus(
-    analysis: com.example.assistenttreneren.feature.analysis.domain.model.AnalysisJob? = latestAnalysis,
-): String =
-    when (analysis?.status) {
-        AnalysisJobStatus.QUEUED -> "Analyse er køet"
-        AnalysisJobStatus.PROCESSING -> "Analyse pågår"
-        AnalysisJobStatus.COMPLETED -> "Analyse fullført"
-        AnalysisJobStatus.FAILED -> "Analyse feilet"
-        null -> state.toDisplayText()
-    }
+private fun AnalysisCandidate.displayStatus(): String = state.toDisplayText()

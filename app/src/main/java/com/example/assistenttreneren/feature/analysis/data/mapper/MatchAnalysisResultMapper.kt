@@ -2,6 +2,7 @@ package com.example.assistenttreneren.feature.analysis.data.mapper
 
 import com.example.assistenttreneren.feature.analysis.data.dto.AnalysisEvidenceDto
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchAnalysisResultDto
+import com.example.assistenttreneren.feature.analysis.data.dto.CoachInterventionDto
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchCategoryDto
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchPhaseDto
 import com.example.assistenttreneren.feature.analysis.data.dto.MatchSummaryDto
@@ -12,6 +13,7 @@ import com.example.assistenttreneren.feature.analysis.domain.model.MatchCategory
 import com.example.assistenttreneren.feature.analysis.domain.model.MatchPhase
 import com.example.assistenttreneren.feature.analysis.domain.model.MatchSummary
 import com.example.assistenttreneren.feature.analysis.domain.model.PlayerDevelopmentSummary
+import com.example.assistenttreneren.feature.analysis.domain.model.CoachIntervention
 
 fun MatchAnalysisResultDto.toMatchAnalysisResult() = MatchAnalysisResult(
     executiveSummary = ExecutiveSummary(
@@ -30,7 +32,17 @@ fun MatchAnalysisResultDto.toMatchAnalysisResult() = MatchAnalysisResult(
     priorities = priorities.map { it.toAnalysisEvidence() },
     recommendations = recommendations.map { it.toAnalysisEvidence() },
     uncertainties = uncertainties.map { it.toAnalysisEvidence() },
+    coachInterventions = coachInterventions.map { it.toCoachIntervention() },
     match = categoryAnalysis.match.toMatchCategoryAnalysis(),
+)
+
+private fun CoachInterventionDto.toCoachIntervention() = CoachIntervention(
+    type = type,
+    summary = summary,
+    section = section,
+    confidence = confidence,
+    relatedEventIds = relatedEventIds,
+    relatedTranscriptionIds = relatedTranscriptionIds,
 )
 
 private fun AnalysisEvidenceDto.toAnalysisEvidence() = AnalysisEvidence(
