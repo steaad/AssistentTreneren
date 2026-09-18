@@ -25,28 +25,27 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class CameraXVideoRecorder @Inject constructor(
     private val fileNameFormatter: RecordingFileNameFormatter,
 ) {
     private var videoCapture: VideoCapture<Recorder>? = null
     private var previewUseCase: Preview? = null
+    private var boundPreviewView: PreviewView? = null
     private var activeRecording: Recording? = null
     private var activeSession: ActiveVideoRecording? = null
+    private val cameraBindingMutex = Mutex()
 
-    suspend fun bindPreview(
+    suspend fun prepareVideoCapture(
         context: Context,
         lifecycleOwner: LifecycleOwner,
-        previewView: PreviewView,
-    ) {
-        previewUseCase?.let { preview ->
-            preview.surfaceProvider = previewView.surfaceProvider
-            return
-        }
+    ) = cameraBindingMutex.withLock {
+        if (videoCapture != null) return@withLock
+
         val cameraProvider = context.cameraProvider()
-        val preview = Preview.Builder().build().also { preview ->
-            preview.surfaceProvider = previewView.surfaceProvider
-        }
+        val preview = Preview.Builder().build()
         val recorder = Recorder.Builder()
             .setQualitySelector(QualitySelector.from(Quality.HD))
             .build()
@@ -62,6 +61,18 @@ class CameraXVideoRecorder @Inject constructor(
         camera.cameraControl.setLinearZoom(FIXED_LINEAR_ZOOM)
         videoCapture = capture
         previewUseCase = preview
+    }
+
+    suspend fun bindPreview(
+        context: Context,
+        lifecycleOwner: LifecycleOwner,
+        previewView: PreviewView,
+    ) {
+        prepareVideoCapture(context, lifecycleOwner)
+        if (boundPreviewView === previewView) return
+        check(activeRecording == null) { "Camera preview cannot be changed while video recording is active." }
+        checkNotNull(previewUseCase).surfaceProvider = previewView.surfaceProvider
+        boundPreviewView = previewView
     }
 
     fun startRecording(

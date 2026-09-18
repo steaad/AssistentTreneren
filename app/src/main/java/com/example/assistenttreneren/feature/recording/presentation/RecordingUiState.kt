@@ -10,10 +10,13 @@ data class RecordingUiState(
     val recordingStartedAtMillis: Long? = null,
     val activeDisplayName: String? = null,
     val completedRecording: RecordingSession? = null,
+    val isCameraPreparing: Boolean = false,
+    val isCameraReady: Boolean = false,
     val errorMessage: String? = null,
 ) {
     val canStartRecording: Boolean
-        get() = !isRecording && subCategory.isNotBlank() && selectedMediaType != null
+        get() = !isRecording && subCategory.isNotBlank() && selectedMediaType != null &&
+            (selectedMediaType != RecordingMediaType.Video || isCameraReady)
 
     val canStopRecording: Boolean
         get() = isRecording

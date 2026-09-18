@@ -87,6 +87,8 @@ class RecordingViewModel @Inject constructor(
             } else {
                 currentState.copy(
                     selectedMediaType = mediaType,
+                    isCameraPreparing = false,
+                    isCameraReady = false,
                     errorMessage = null,
                 )
             }
@@ -140,6 +142,34 @@ class RecordingViewModel @Inject constructor(
         }
     }
 
+    fun prepareVideoCapture(
+        context: Context,
+        lifecycleOwner: LifecycleOwner,
+    ) {
+        val currentState = uiState.value
+        if (currentState.isCameraReady || currentState.isCameraPreparing) return
+
+        _uiState.update { it.copy(isCameraPreparing = true, isCameraReady = false, errorMessage = null) }
+        viewModelScope.launch {
+            runCatching {
+                cameraXVideoRecorder.prepareVideoCapture(
+                    context = context.applicationContext,
+                    lifecycleOwner = lifecycleOwner,
+                )
+            }.onSuccess {
+                _uiState.update { it.copy(isCameraPreparing = false, isCameraReady = true) }
+            }.onFailure { throwable ->
+                _uiState.update {
+                    it.copy(
+                        isCameraPreparing = false,
+                        isCameraReady = false,
+                        errorMessage = throwable.message ?: "Kunne ikke klargjøre kamera.",
+                    )
+                }
+            }
+        }
+    }
+
     fun startVideoRecording(
         context: Context,
         category: String,
@@ -149,6 +179,10 @@ class RecordingViewModel @Inject constructor(
     ) {
         val subCategory = uiState.value.subCategory.trim()
         if (subCategory.isBlank()) {
+            return
+        }
+        if (!uiState.value.isCameraReady) {
+            _uiState.update { it.copy(errorMessage = "Kameraet klargjøres fortsatt.") }
             return
         }
 

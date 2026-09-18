@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.AlertDialog
-import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -63,6 +62,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -135,6 +135,15 @@ fun AudioRecordingStepScreen(
         }
     }
 
+    LaunchedEffect(recordingUiState.selectedMediaType, lifecycleOwner) {
+        if (
+            recordingUiState.selectedMediaType == RecordingMediaType.Video &&
+            hasRecordingPermissions(context, RecordingMediaType.Video)
+        ) {
+            recordingViewModel.prepareVideoCapture(context, lifecycleOwner)
+        }
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
@@ -157,13 +166,7 @@ fun AudioRecordingStepScreen(
                     matchClockStartMillis = currentMatchClockMillis(),
                 )
 
-                RecordingMediaType.Video -> recordingViewModel.startVideoRecording(
-                    context = context,
-                    category = category,
-                    activityId = activityId,
-                    matchPeriod = matchClockPeriod,
-                    matchClockStartMillis = currentMatchClockMillis(),
-                )
+                RecordingMediaType.Video -> recordingViewModel.prepareVideoCapture(context, lifecycleOwner)
 
                 null -> Unit
             }
@@ -180,7 +183,8 @@ fun AudioRecordingStepScreen(
             matchClockStartedAtMillis == null &&
             matchClockElapsedMillis == 0L,
         isNextEnabled = !recordingUiState.isRecording,
-        contentFillsAvailableSpace = recordingUiState.selectedMediaType == RecordingMediaType.Video,
+        contentFillsAvailableSpace = recordingUiState.selectedMediaType == RecordingMediaType.Video &&
+            isVideoPreviewExpanded,
         titleTrailingContent = {
             TextButton(onClick = { showEventRegistrationTips = true }) {
                 Icon(
@@ -193,7 +197,10 @@ fun AudioRecordingStepScreen(
         },
     ) {
         Column(
-            modifier = if (recordingUiState.selectedMediaType == RecordingMediaType.Video) {
+            modifier = if (
+                recordingUiState.selectedMediaType == RecordingMediaType.Video &&
+                isVideoPreviewExpanded
+            ) {
                 Modifier.fillMaxSize()
             } else {
                 Modifier.fillMaxWidth()
@@ -278,7 +285,7 @@ fun AudioRecordingStepScreen(
                     recordingUiState = recordingUiState,
                     permissionMessageVisible = permissionMessageVisible,
                     canStartRecording = category != null && canStartMatchRecording(category, recordingUiState.subCategory, matchClockStartedAtMillis != null),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = if (isVideoPreviewExpanded) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
                     isPreviewExpanded = isVideoPreviewExpanded,
                     onPreviewExpansionChanged = { isVideoPreviewExpanded = it },
                     onBindPreview = { previewView ->
@@ -336,31 +343,6 @@ fun AudioRecordingStepScreen(
             },
             dismissButton = { OutlinedButton(onClick = { showStopMatchClockDialog = false }) { Text("Avbryt") } },
         )
-    }
-
-    if (isVideoPreviewExpanded) {
-        Dialog(onDismissRequest = { isVideoPreviewExpanded = false }) {
-            Surface(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AndroidView(
-                        factory = { previewContext ->
-                            PreviewView(previewContext).apply {
-                                scaleType = PreviewView.ScaleType.FILL_CENTER
-                                recordingViewModel.bindVideoPreview(context, lifecycleOwner, this)
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    Button(
-                        onClick = { isVideoPreviewExpanded = false },
-                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                    ) {
-                        Icon(Icons.Outlined.Remove, contentDescription = null)
-                        Text("Minimer")
-                    }
-                }
-            }
-        }
     }
 
     if (showEventRegistrationTips) {
@@ -542,7 +524,13 @@ private fun VideoRecordingPanel(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = if (isPreviewExpanded) {
+                Modifier.fillMaxSize()
+            } else {
+                Modifier.fillMaxWidth()
+            },
+        ) {
             AndroidView(
                 factory = { context ->
                     PreviewView(context).apply {
@@ -550,54 +538,85 @@ private fun VideoRecordingPanel(
                         onBindPreview(this)
                     }
                 },
-                modifier = Modifier.fillMaxSize().alpha(0f),
+                modifier = if (isPreviewExpanded) {
+                    Modifier.fillMaxSize().alpha(1f)
+                } else {
+                    Modifier.size(1.dp).alpha(0f)
+                },
             )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            RecordingCaptureIndicator(
-                icon = Icons.Outlined.Videocam,
-                isRecording = recordingUiState.isRecording,
-                activeText = "VIDEOOPPTAK PÅGÅR",
-            )
-
-            OutlinedButton(onClick = { onPreviewExpansionChanged(true) }) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
-                Text("Maksimer")
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = onStartRecording,
-                    enabled = recordingUiState.canStartRecording && canStartRecording,
-                    modifier = Modifier.weight(1f),
+            if (isPreviewExpanded) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(width = 48.dp, height = 112.dp),
                 ) {
-                    Text(text = stringResource(R.string.recording_start_button))
+                    OutlinedButton(
+                        onClick = { onPreviewExpansionChanged(false) },
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .width(112.dp)
+                            .height(48.dp)
+                            .rotate(90f),
+                    ) {
+                        Icon(Icons.Outlined.Remove, contentDescription = null)
+                        Text("Minimer")
+                    }
                 }
-
-                OutlinedButton(
-                    onClick = onStopRecording,
-                    enabled = recordingUiState.canStopRecording,
-                    colors = activeStopButtonColors(),
-                    modifier = Modifier.weight(1f),
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(text = stringResource(R.string.recording_stop_button))
+                    RecordingCaptureIndicator(
+                        icon = Icons.Outlined.Videocam,
+                        isRecording = recordingUiState.isRecording,
+                        activeText = "VIDEOOPPTAK PÅGÅR",
+                    )
+
+                    if (recordingUiState.isCameraPreparing) {
+                        Text("Klargjør kamera …", style = MaterialTheme.typography.bodySmall)
+                    } else if (!recordingUiState.isCameraReady) {
+                        Text("Kameraet må være klart før opptak kan starte.", style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    OutlinedButton(onClick = { onPreviewExpansionChanged(true) }) {
+                        Icon(Icons.Outlined.Add, contentDescription = null)
+                        Text("Maksimer")
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Button(
+                            onClick = onStartRecording,
+                            enabled = recordingUiState.canStartRecording && canStartRecording,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(text = stringResource(R.string.recording_start_button))
+                        }
+
+                        OutlinedButton(
+                            onClick = onStopRecording,
+                            enabled = recordingUiState.canStopRecording,
+                            colors = activeStopButtonColors(),
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(text = stringResource(R.string.recording_stop_button))
+                        }
+                    }
+
+                    RecordingStatusText(
+                        recordingUiState = recordingUiState,
+                        permissionMessageVisible = permissionMessageVisible,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
                 }
             }
-
-            RecordingStatusText(
-                recordingUiState = recordingUiState,
-                permissionMessageVisible = permissionMessageVisible,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
         }
     }
 }
